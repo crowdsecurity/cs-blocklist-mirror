@@ -1,0 +1,35 @@
+config_version: v1.0
+crowdsec_config:
+  lapi_key: $LAPI_KEY
+  lapi_url: http://127.0.0.1:8080/
+  update_frequency: 10s
+  include_scenarios_containing: []
+  exclude_scenarios_containing: []
+  only_include_decisions_from: []
+  insecure_skip_verify: false
+
+bouncer_config:
+  blocklists:
+    - format: fortinet
+      endpoint: /security/blocklist
+      authentication:
+        type: none
+        user:
+        password:
+
+  listen_uri: 127.0.0.1:41412
+  tls:
+    cert_file:
+    key_file:
+
+  metrics:
+    enabled: true
+    endpoint: /metrics
+
+log_media: file
+log_dir: /var/log/
+log_level: info
+log_max_size: 40
+log_max_age: 30
+log_max_backups: 3
+compress_logs: true
