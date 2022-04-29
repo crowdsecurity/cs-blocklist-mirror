@@ -1,0 +1,10 @@
+Source: crowdsec-blocklist-mirror
+Maintainer: Crowdsec Team <debian@crowdsec.net>
+Build-Depends: debhelper, bash
+
+Package: crowdsec-blocklist-mirror
+Provides: crowdsec-blocklist-mirror
+Description: Blocklist mirror of Crowdsec
+Architecture: any
+
+

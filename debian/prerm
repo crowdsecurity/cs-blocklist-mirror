@@ -1,0 +1,2 @@
+systemctl stop crowdsec-blocklist-mirror || echo "cannot stop service"
+systemctl disable crowdsec-blocklist-mirror || echo "cannot disable service"

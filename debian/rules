@@ -1,0 +1,24 @@
+#!/usr/bin/make -f
+
+export DEB_VERSION=$(shell dpkg-parsechangelog | egrep '^Version:' | cut -f 2 -d ' ')
+export BUILD_VERSION=v${DEB_VERSION}-debian-pragmatic
+export GO111MODULE=on
+
+
+%:
+	dh $@
+
+override_dh_systemd_start:
+	echo "Not running dh_systemd_start"
+override_dh_auto_clean:
+override_dh_auto_test:
+override_dh_auto_build:
+override_dh_auto_install:
+	make
+	mkdir -p debian/crowdsec-blocklist-mirror/var/lib/crowdsec/crowdsec-blocklist-mirror/cache/
+	mkdir -p debian/crowdsec-blocklist-mirror/usr/bin
+	cp crowdsec-blocklist-mirror  debian/crowdsec-blocklist-mirror/usr/bin
+	mkdir -p debian/crowdsec-blocklist-mirror/etc/systemd/system/
+	mkdir -p debian/crowdsec-blocklist-mirror/etc/crowdsec/bouncers/
+	BIN=/usr/bin/crowdsec-blocklist-mirror CFG=/etc/crowdsec/bouncers envsubst < config/crowdsec-blocklist-mirror.service >  debian/crowdsec-blocklist-mirror/etc/systemd/system/crowdsec-blocklist-mirror.service
+	cp config/crowdsec-blocklist-mirror.yaml debian/crowdsec-blocklist-mirror/etc/crowdsec/bouncers/
