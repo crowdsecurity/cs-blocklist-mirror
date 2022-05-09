@@ -17,8 +17,8 @@ var apiCountersByFormatName map[string]prometheus.Counter = map[string]prometheu
 		Help: "Total number of times blocklist in plain-text format was requested",
 	}),
 }
-var totalActiveDecisions prometheus.Gauge = promauto.NewGauge(prometheus.GaugeOpts{
-	Name: "total_active_decisions",
+var activeDecisionCount prometheus.Gauge = promauto.NewGauge(prometheus.GaugeOpts{
+	Name: "active_decision_count",
 	Help: "Total number of decisions served by any blocklist",
 })
 
@@ -29,7 +29,7 @@ type DecisionRegistry struct {
 func (dr *DecisionRegistry) AddDecisions(decisions []*models.Decision) {
 	for _, decision := range decisions {
 		dr.ActiveDecisionsByValue[*decision.Value] = decision
-		totalActiveDecisions.Inc()
+		activeDecisionCount.Inc()
 	}
 }
 
@@ -47,7 +47,7 @@ func (dr *DecisionRegistry) DeleteDecisions(decisions []*models.Decision) {
 	for _, decision := range decisions {
 		if _, ok := dr.ActiveDecisionsByValue[*decision.Value]; ok {
 			delete(dr.ActiveDecisionsByValue, *decision.Value)
-			totalActiveDecisions.Dec()
+			activeDecisionCount.Dec()
 		}
 	}
 }
