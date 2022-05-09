@@ -12,6 +12,7 @@ import (
 	"github.com/crowdsecurity/crowdsec/pkg/types"
 	"github.com/crowdsecurity/cs-blocklist-mirror/version"
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 )
@@ -22,8 +23,12 @@ var globalDecisionRegistry DecisionRegistry = DecisionRegistry{
 
 func runServer(cfg BouncerConfig) {
 	for _, blockListCFG := range cfg.Blocklists {
-		f := getHandlerForBlockList(blockListCFG)
+		f, err := getHandlerForBlockList(blockListCFG)
+		if err != nil {
+			log.Fatal(err)
+		}
 		http.HandleFunc(blockListCFG.Endpoint, f)
+		prometheus.MustRegister(RouteHits)
 		log.Infof("serving blocklist in format %s at endpoint %s", blockListCFG.Format, blockListCFG.Endpoint)
 	}
 
