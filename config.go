@@ -81,7 +81,7 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	}
 
 	alreadyUsedEndpoint := make(map[string]struct{})
-	validFormats := []string{"fortinet"}
+	validFormats := []string{"plain-text"}
 
 	for _, blockList := range cfg.BouncerConfig.Blocklists {
 		if _, ok := alreadyUsedEndpoint[blockList.Endpoint]; ok {

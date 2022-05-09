@@ -7,11 +7,11 @@ import (
 )
 
 var FormattersByName map[string]func([]*models.Decision) string = map[string]func([]*models.Decision) string{
-	"fortinet": fortinetFormatter,
+	"plain-text": plain-textFormatter,
 }
 
 
-func fortinetFormatter(decisions []*models.Decision) string {
+func plain-textFormatter(decisions []*models.Decision) string {
 	ips := make([]string, len(decisions))
 	for i, decision := range decisions {
 		ips[i] = *decision.Value

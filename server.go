@@ -12,9 +12,9 @@ import (
 )
 
 var apiCountersByFormatName map[string]prometheus.Counter = map[string]prometheus.Counter{
-	"fortinet": promauto.NewCounter(prometheus.CounterOpts{
-		Name: "total_api_calls_for_fortinet",
-		Help: "Total number of times blocklist in fortinet format was requested",
+	"plain-text": promauto.NewCounter(prometheus.CounterOpts{
+		Name: "total_api_calls_for_plain-text",
+		Help: "Total number of times blocklist in plain-text format was requested",
 	}),
 }
 var totalActiveDecisions prometheus.Gauge = promauto.NewGauge(prometheus.GaugeOpts{

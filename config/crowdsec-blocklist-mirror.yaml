@@ -10,7 +10,7 @@ crowdsec_config:
 
 bouncer_config:
   blocklists:
-    - format: fortinet
+    - format: plain-text
       endpoint: /security/blocklist
       authentication:
         type: none
