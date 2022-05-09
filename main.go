@@ -83,7 +83,9 @@ func main() {
 		InsecureSkipVerify: types.BoolPtr(config.CrowdsecConfig.InsecureSkipVerify),
 	}
 
-	decisionStreamer.Init()
+	if err := decisionStreamer.Init(); err != nil {
+		log.Fatal(err)
+	}
 
 	go func() {
 		decisionStreamer.Run()
