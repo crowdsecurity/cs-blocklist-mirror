@@ -11,6 +11,7 @@ import (
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/sirupsen/logrus"
 )
 
 var RouteHits = prometheus.NewCounterVec(
@@ -120,15 +121,27 @@ func getHandlerForBlockList(blockListCfg BlockListConfig) (func(http.ResponseWri
 			blockListCfg.Endpoint,
 		).Inc()
 
-		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
-		if !networksContainIP(trustedIPs, ip) {
-			if strings.EqualFold(blockListCfg.Authentication.Type, "basic") {
-				if !satisfiesBasicAuth(r, blockListCfg.Authentication.User, blockListCfg.Authentication.Password) {
-					http.Error(w, "access denied", http.StatusForbidden)
-					return
-				}
-			}
+		ip, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			logrus.Errorf("error while spliting hostport for %s: %v", r.RemoteAddr, err)
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
 		}
+
+		switch strings.ToLower(blockListCfg.Authentication.Type) {
+		case "ip_based":
+			if !networksContainIP(trustedIPs, ip) {
+				http.Error(w, "access denied", http.StatusForbidden)
+				return
+			}
+		case "basic":
+			if !satisfiesBasicAuth(r, blockListCfg.Authentication.User, blockListCfg.Authentication.Password) {
+				http.Error(w, "access denied", http.StatusForbidden)
+				return
+			}
+		case "", "none":
+		}
+
 		if _, ok := FormattersByName[blockListCfg.Format]; !ok {
 			log.Fatal("unsupported format")
 		}

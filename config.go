@@ -84,6 +84,7 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 
 	alreadyUsedEndpoint := make(map[string]struct{})
 	validFormats := []string{}
+	validAuthenticationTypes := []string{"basic", "ip_based", "none"}
 	for format := range FormattersByName {
 		validFormats = append(validFormats, format)
 	}
@@ -95,6 +96,9 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		alreadyUsedEndpoint[blockList.Endpoint] = struct{}{}
 		if !contains(validFormats, blockList.Format) {
 			return fmt.Errorf("%s format is not supported. Supported formats are '%s'", blockList.Format, strings.Join(validFormats, ","))
+		}
+		if !contains(validAuthenticationTypes, blockList.Authentication.Type) && blockList.Authentication.Type != "" {
+			return fmt.Errorf("%s authentication type is not supported. Supported authentication types are '%s'", blockList.Authentication, strings.Join(validAuthenticationTypes, ","))
 		}
 	}
 
