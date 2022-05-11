@@ -28,11 +28,11 @@ func runServer(cfg BouncerConfig) {
 			log.Fatal(err)
 		}
 		http.HandleFunc(blockListCFG.Endpoint, f)
-		prometheus.MustRegister(RouteHits)
 		log.Infof("serving blocklist in format %s at endpoint %s", blockListCFG.Format, blockListCFG.Endpoint)
 	}
 
 	if cfg.Metrics.Enabled {
+		prometheus.MustRegister(RouteHits)
 		log.Infof("Enabling metrics at endpoint '%s' ", cfg.Metrics.Endpoint)
 		http.Handle(cfg.Metrics.Endpoint, promhttp.Handler())
 	}
