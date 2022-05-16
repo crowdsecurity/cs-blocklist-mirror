@@ -1,4 +1,7 @@
 <p align="center">
+<img src="https://raw.githubusercontent.com/crowdsecurity/cs-blocklist-mirror/main/docs/assets/bouncer.svg" alt="CrowdSec-Http-blocklist-mirror-logo" title="CrowdSec-Http-Blocklist-mirror-logo" width="280" height="300">
+ </p>
+<p align="center">
 <img src="https://img.shields.io/badge/build-pass-green">
 <img src="https://img.shields.io/badge/tests-pass-green">
 </p>
