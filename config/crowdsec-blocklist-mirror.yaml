@@ -10,12 +10,15 @@ crowdsec_config:
 
 bouncer_config:
   blocklists:
-    - format: fortinet
+    - format: plain_text
       endpoint: /security/blocklist
       authentication:
         type: none
         user:
         password:
+        trusted_ips: # IP ranges, or IPs which don't require auth to access this blocklist
+          - 127.0.0.1
+          - ::1
 
   listen_uri: 127.0.0.1:41412
   tls:

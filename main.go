@@ -12,6 +12,7 @@ import (
 	"github.com/crowdsecurity/crowdsec/pkg/types"
 	"github.com/crowdsecurity/cs-blocklist-mirror/version"
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 )
@@ -22,12 +23,16 @@ var globalDecisionRegistry DecisionRegistry = DecisionRegistry{
 
 func runServer(cfg BouncerConfig) {
 	for _, blockListCFG := range cfg.Blocklists {
-		f := getHandlerForBlockList(blockListCFG)
+		f, err := getHandlerForBlockList(blockListCFG)
+		if err != nil {
+			log.Fatal(err)
+		}
 		http.HandleFunc(blockListCFG.Endpoint, f)
 		log.Infof("serving blocklist in format %s at endpoint %s", blockListCFG.Format, blockListCFG.Endpoint)
 	}
 
 	if cfg.Metrics.Enabled {
+		prometheus.MustRegister(RouteHits)
 		log.Infof("Enabling metrics at endpoint '%s' ", cfg.Metrics.Endpoint)
 		http.Handle(cfg.Metrics.Endpoint, promhttp.Handler())
 	}
@@ -83,7 +88,9 @@ func main() {
 		InsecureSkipVerify: types.BoolPtr(config.CrowdsecConfig.InsecureSkipVerify),
 	}
 
-	decisionStreamer.Init()
+	if err := decisionStreamer.Init(); err != nil {
+		log.Fatal(err)
+	}
 
 	go func() {
 		decisionStreamer.Run()

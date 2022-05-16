@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/crowdsecurity/crowdsec/pkg/types"
 	"github.com/sirupsen/logrus"
@@ -24,10 +25,11 @@ type BlockListConfig struct {
 	Format         string `yaml:"format"`
 	Endpoint       string `yaml:"endpoint"`
 	Authentication struct {
-		Type     string `yaml:"type"`
-		User     string `yaml:"user"`
-		Password string `yaml:"password"`
-		Token    string `yaml:"token"`
+		Type       string   `yaml:"type"`
+		User       string   `yaml:"user"`
+		Password   string   `yaml:"password"`
+		Token      string   `yaml:"token"`
+		TrustedIPs []string `yaml:"trusted_ips"`
 	} `yaml:"authentication"`
 }
 
@@ -81,15 +83,22 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	}
 
 	alreadyUsedEndpoint := make(map[string]struct{})
-	validFormats := []string{"fortinet"}
+	validFormats := []string{}
+	validAuthenticationTypes := []string{"basic", "ip_based", "none"}
+	for format := range FormattersByName {
+		validFormats = append(validFormats, format)
+	}
 
 	for _, blockList := range cfg.BouncerConfig.Blocklists {
 		if _, ok := alreadyUsedEndpoint[blockList.Endpoint]; ok {
 			return fmt.Errorf("%s endpoint used more than once", blockList.Endpoint)
 		}
 		alreadyUsedEndpoint[blockList.Endpoint] = struct{}{}
-		if contains(validFormats, blockList.Format) {
-			return fmt.Errorf("%s format is not supported", blockList.Format)
+		if !contains(validFormats, blockList.Format) {
+			return fmt.Errorf("%s format is not supported. Supported formats are '%s'", blockList.Format, strings.Join(validFormats, ","))
+		}
+		if !contains(validAuthenticationTypes, blockList.Authentication.Type) && blockList.Authentication.Type != "" {
+			return fmt.Errorf("%s authentication type is not supported. Supported authentication types are '%s'", blockList.Authentication, strings.Join(validAuthenticationTypes, ","))
 		}
 	}
 

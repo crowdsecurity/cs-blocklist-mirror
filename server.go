@@ -3,22 +3,33 @@ package main
 import (
 	"encoding/base64"
 	"fmt"
+	"log"
+	"net"
 	"net/http"
 	"strings"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/sirupsen/logrus"
 )
 
-var apiCountersByFormatName map[string]prometheus.Counter = map[string]prometheus.Counter{
-	"fortinet": promauto.NewCounter(prometheus.CounterOpts{
-		Name: "total_api_calls_for_fortinet",
-		Help: "Total number of times blocklist in fortinet format was requested",
-	}),
-}
-var totalActiveDecisions prometheus.Gauge = promauto.NewGauge(prometheus.GaugeOpts{
-	Name: "total_active_decisions",
+var RouteHits = prometheus.NewCounterVec(
+	prometheus.CounterOpts{
+		Name: "blocklist_requests_total",
+		Help: "Number of calls to each blocklist",
+	},
+	[]string{"route"},
+)
+
+// var apiCountersByFormatName map[string]prometheus. = map[string]prometheus.Counter{
+// 	"plain_text": promauto.NewCounter(prometheus.CounterOpts{
+// 		Name: "total_api_calls_for_plain_text",
+// 		Help: "Total number of times blocklist in plain_text format was requested",
+// 	}),
+// }
+var activeDecisionCount prometheus.Gauge = promauto.NewGauge(prometheus.GaugeOpts{
+	Name: "active_decision_count",
 	Help: "Total number of decisions served by any blocklist",
 })
 
@@ -29,7 +40,7 @@ type DecisionRegistry struct {
 func (dr *DecisionRegistry) AddDecisions(decisions []*models.Decision) {
 	for _, decision := range decisions {
 		dr.ActiveDecisionsByValue[*decision.Value] = decision
-		totalActiveDecisions.Inc()
+		activeDecisionCount.Inc()
 	}
 }
 
@@ -47,7 +58,7 @@ func (dr *DecisionRegistry) DeleteDecisions(decisions []*models.Decision) {
 	for _, decision := range decisions {
 		if _, ok := dr.ActiveDecisionsByValue[*decision.Value]; ok {
 			delete(dr.ActiveDecisionsByValue, *decision.Value)
-			totalActiveDecisions.Dec()
+			activeDecisionCount.Dec()
 		}
 	}
 }
@@ -66,18 +77,77 @@ func satisfiesBasicAuth(r *http.Request, user, password string) bool {
 	return expectedVal == foundVal
 }
 
-func getHandlerForBlockList(blockListCfg BlockListConfig) func(http.ResponseWriter, *http.Request) {
+func toValidCIDR(ip string) string {
+	if strings.Contains(ip, "/") {
+		return ip
+	}
+
+	if strings.Contains(ip, ":") {
+		return ip + "/128"
+	}
+	return ip + "/32"
+}
+
+func getTrustedIPs(ips []string) ([]net.IPNet, error) {
+	trustedIPs := make([]net.IPNet, 0)
+	for _, ip := range ips {
+		cidr := toValidCIDR(ip)
+		_, ipNet, err := net.ParseCIDR(cidr)
+		if err != nil {
+			return nil, err
+		}
+		trustedIPs = append(trustedIPs, *ipNet)
+	}
+	return trustedIPs, nil
+}
+
+func networksContainIP(networks []net.IPNet, ip string) bool {
+	parsedIP := net.ParseIP(ip)
+	for _, network := range networks {
+		if network.Contains(parsedIP) {
+			return true
+		}
+	}
+	return false
+}
+
+func getHandlerForBlockList(blockListCfg BlockListConfig) (func(http.ResponseWriter, *http.Request), error) {
+	trustedIPs, err := getTrustedIPs(blockListCfg.Authentication.TrustedIPs)
+	if err != nil {
+		return nil, err
+	}
 	f := func(w http.ResponseWriter, r *http.Request) {
-		apiCountersByFormatName[blockListCfg.Format].Inc()
-		if strings.EqualFold(blockListCfg.Authentication.Type, "basic") {
+		RouteHits.WithLabelValues(
+			blockListCfg.Endpoint,
+		).Inc()
+
+		ip, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			logrus.Errorf("error while spliting hostport for %s: %v", r.RemoteAddr, err)
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		switch strings.ToLower(blockListCfg.Authentication.Type) {
+		case "ip_based":
+			if !networksContainIP(trustedIPs, ip) {
+				http.Error(w, "access denied", http.StatusForbidden)
+				return
+			}
+		case "basic":
 			if !satisfiesBasicAuth(r, blockListCfg.Authentication.User, blockListCfg.Authentication.Password) {
 				http.Error(w, "access denied", http.StatusForbidden)
 				return
 			}
+		case "", "none":
+		}
+
+		if _, ok := FormattersByName[blockListCfg.Format]; !ok {
+			log.Fatal("unsupported format")
 		}
 		w.Write(
 			[]byte(FormattersByName[blockListCfg.Format](globalDecisionRegistry.GetActiveDecisions())),
 		)
 	}
-	return f
+	return f, nil
 }
