@@ -7,7 +7,7 @@
 &#128172; <a href="https://discourse.crowdsec.net">Discourse </a>
 </p>
 
-# CrowdSec Bloclist Mirror
+# CrowdSec Blocklist Mirror
 
 This bouncer exposes CrowdSec's active decisions via provided HTTP endpoints in pre-defined formats. It can be used by network appliances which support consumption of blocklists via HTTP.
 
