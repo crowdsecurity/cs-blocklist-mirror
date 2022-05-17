@@ -13,6 +13,7 @@ require (
 	github.com/crowdsecurity/go-cs-bouncer v0.0.0-20220426081546-5475047b025f // indirect
 	github.com/crowdsecurity/grokky v0.0.0-20220120093523-d5b3478363fa // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/go-openapi/analysis v0.21.3 // indirect
 	github.com/go-openapi/errors v0.20.2 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect

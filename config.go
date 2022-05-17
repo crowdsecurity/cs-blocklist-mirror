@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/crowdsecurity/crowdsec/pkg/types"
@@ -10,6 +12,9 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 	"gopkg.in/yaml.v2"
 )
+
+var blocklistMirrorLogFilePath string = "crowdsec-blocklist-mirror.log"
+var blocklistMirrorAccessLogFilePath string = "crowdsec-blocklist-mirror-access-logs.log"
 
 type CrowdsecConfig struct {
 	LapiKey                    string   `yaml:"lapi_key"`
@@ -33,30 +38,66 @@ type BlockListConfig struct {
 	} `yaml:"authentication"`
 }
 
-type BouncerConfig struct {
-	Blocklists []BlockListConfig `yaml:"blocklists"`
-	ListenURI  string            `yaml:"listen_uri"`
-	TLS        struct {
-		CertFile string `yaml:"cert_file"`
-		KeyFile  string `yaml:"key_file"`
-	} `yaml:"tls"`
-	Metrics struct {
-		Enabled  bool   `yaml:"enabled"`
-		Endpoint string `yaml:"endpoint"`
-	} `yaml:"metrics"`
+type MetricConfig struct {
+	Enabled  bool   `yaml:"enabled"`
+	Endpoint string `yaml:"endpoint"`
+}
+
+type TLSConfig struct {
+	CertFile string `yaml:"cert_file"`
+	KeyFile  string `yaml:"key_file"`
 }
 
 type Config struct {
-	CrowdsecConfig CrowdsecConfig `yaml:"crowdsec_config"`
-	BouncerConfig  BouncerConfig  `yaml:"bouncer_config"`
-	LogLevel       logrus.Level   `yaml:"log_level"`
-	LogMedia       string         `yaml:"log_media"`
-	LogDir         string         `yaml:"log_dir"`
-	LogMaxSize     int            `yaml:"log_max_size"`
-	LogMaxAge      int            `yaml:"log_max_age"`
-	LogMaxFiles    int            `yaml:"log_max_backups"`
-	CompressLogs   *bool          `yaml:"compress_logs"`
-	ConfigVersion  string         `yaml:"config_version"`
+	CrowdsecConfig   CrowdsecConfig    `yaml:"crowdsec_config"`
+	Blocklists       []BlockListConfig `yaml:"blocklists"`
+	ListenURI        string            `yaml:"listen_uri"`
+	TLS              TLSConfig         `yaml:"tls"`
+	Metrics          MetricConfig      `yaml:"metrics"`
+	LogLevel         logrus.Level      `yaml:"log_level"`
+	LogMedia         string            `yaml:"log_media"`
+	LogDir           string            `yaml:"log_dir"`
+	LogMaxSize       int               `yaml:"log_max_size"`
+	LogMaxAge        int               `yaml:"log_max_age"`
+	LogMaxFiles      int               `yaml:"log_max_backups"`
+	CompressLogs     *bool             `yaml:"compress_logs"`
+	ConfigVersion    string            `yaml:"config_version"`
+	EnableAccessLogs bool              `yaml:"enable_access_logs"`
+}
+
+func (cfg *Config) getLoggerForFile(fileName string) io.Writer {
+
+	if cfg.LogMedia != "file" {
+		return os.Stdout
+	}
+
+	if cfg.LogDir == "" {
+		cfg.LogDir = "/var/log/"
+	}
+	_maxsize := 40
+	if cfg.LogMaxSize != 0 {
+		_maxsize = cfg.LogMaxSize
+	}
+	_maxfiles := 3
+	if cfg.LogMaxFiles != 0 {
+		_maxfiles = cfg.LogMaxFiles
+	}
+	_maxage := 30
+	if cfg.LogMaxAge != 0 {
+		_maxage = cfg.LogMaxAge
+	}
+	_compress := true
+	if cfg.CompressLogs != nil {
+		_compress = *cfg.CompressLogs
+	}
+	logOutput := &lumberjack.Logger{
+		Filename:   path.Join(cfg.LogDir, fileName),
+		MaxSize:    _maxsize,
+		MaxBackups: _maxfiles,
+		MaxAge:     _maxage,
+		Compress:   _compress,
+	}
+	return logOutput
 }
 
 func (cfg *Config) ValidateAndSetDefaults() error {
@@ -77,9 +118,9 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		cfg.ConfigVersion = "v1.0"
 	}
 
-	if cfg.BouncerConfig.ListenURI == "" {
+	if cfg.ListenURI == "" {
 		logrus.Warn("listen_uri is not provided ; assuming 127.0.0.1:41412")
-		cfg.BouncerConfig.ListenURI = "127.0.0.1:41412"
+		cfg.ListenURI = "127.0.0.1:41412"
 	}
 
 	alreadyUsedEndpoint := make(map[string]struct{})
@@ -89,7 +130,7 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		validFormats = append(validFormats, format)
 	}
 
-	for _, blockList := range cfg.BouncerConfig.Blocklists {
+	for _, blockList := range cfg.Blocklists {
 		if _, ok := alreadyUsedEndpoint[blockList.Endpoint]; ok {
 			return fmt.Errorf("%s endpoint used more than once", blockList.Endpoint)
 		}
@@ -97,7 +138,7 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		if !contains(validFormats, blockList.Format) {
 			return fmt.Errorf("%s format is not supported. Supported formats are '%s'", blockList.Format, strings.Join(validFormats, ","))
 		}
-		if !contains(validAuthenticationTypes, blockList.Authentication.Type) && blockList.Authentication.Type != "" {
+		if !contains(validAuthenticationTypes, strings.ToLower(blockList.Authentication.Type)) && blockList.Authentication.Type != "" {
 			return fmt.Errorf("%s authentication type is not supported. Supported authentication types are '%s'", blockList.Authentication, strings.Join(validAuthenticationTypes, ","))
 		}
 	}
@@ -115,35 +156,10 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	}
 
 	if cfg.LogMedia == "file" {
-		if cfg.LogDir == "" {
-			cfg.LogDir = "/var/log/"
-		}
-		_maxsize := 40
-		if cfg.LogMaxSize != 0 {
-			_maxsize = cfg.LogMaxSize
-		}
-		_maxfiles := 3
-		if cfg.LogMaxFiles != 0 {
-			_maxfiles = cfg.LogMaxFiles
-		}
-		_maxage := 30
-		if cfg.LogMaxAge != 0 {
-			_maxage = cfg.LogMaxAge
-		}
-		_compress := true
-		if cfg.CompressLogs != nil {
-			_compress = *cfg.CompressLogs
-		}
-		logOutput := &lumberjack.Logger{
-			Filename:   cfg.LogDir + "/crowdsec-blocklist-mirror.log",
-			MaxSize:    _maxsize,
-			MaxBackups: _maxfiles,
-			MaxAge:     _maxage,
-			Compress:   _compress,
-		}
-		logrus.SetOutput(logOutput)
+		logrus.SetOutput(cfg.getLoggerForFile(blocklistMirrorLogFilePath))
 		logrus.SetFormatter(&logrus.TextFormatter{TimestampFormat: "02-01-2006 15:04:05", FullTimestamp: true})
 	}
+
 	return nil
 }
 

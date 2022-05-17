@@ -111,7 +111,7 @@ func networksContainIP(networks []net.IPNet, ip string) bool {
 	return false
 }
 
-func getHandlerForBlockList(blockListCfg BlockListConfig) (func(http.ResponseWriter, *http.Request), error) {
+func getHandlerForBlockList(blockListCfg BlockListConfig) (func(w http.ResponseWriter, r *http.Request), error) {
 	trustedIPs, err := getTrustedIPs(blockListCfg.Authentication.TrustedIPs)
 	if err != nil {
 		return nil, err
