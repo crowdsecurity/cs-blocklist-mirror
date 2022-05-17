@@ -34,4 +34,5 @@ log_level: info
 log_max_size: 40
 log_max_age: 30
 log_max_backups: 3
+enable_access_logs: true
 compress_logs: true
