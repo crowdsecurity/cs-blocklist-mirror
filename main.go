@@ -54,7 +54,7 @@ func runServer(config Config) {
 
 func main() {
 	configPath := flag.String("c", "", "path to crowdsec-blocklist-mirror.yaml")
-	bouncerVersion := flag.Bool("V", false, "display version and exit")
+	bouncerVersion := flag.Bool("version", false, "display version and exit")
 	traceMode := flag.Bool("trace", false, "set trace mode")
 	debugMode := flag.Bool("debug", false, "set debug mode")
 
