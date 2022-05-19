@@ -28,11 +28,13 @@ metrics:
   enabled: true
   endpoint: /metrics
 
+# logging configuration
 log_media: file
 log_dir: /var/log/
 log_level: info
 log_max_size: 40
 log_max_age: 30
 log_max_backups: 3
-enable_access_logs: true
 compress_logs: true
+# enable access log of the HTTP server
+enable_access_logs: true

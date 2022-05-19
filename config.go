@@ -14,7 +14,7 @@ import (
 )
 
 var blocklistMirrorLogFilePath string = "crowdsec-blocklist-mirror.log"
-var blocklistMirrorAccessLogFilePath string = "crowdsec-blocklist-mirror-access-logs.log"
+var blocklistMirrorAccessLogFilePath string = "crowdsec-blocklist-mirror_access.log"
 
 type CrowdsecConfig struct {
 	LapiKey                    string   `yaml:"lapi_key"`
@@ -101,6 +101,20 @@ func (cfg *Config) getLoggerForFile(fileName string) io.Writer {
 }
 
 func (cfg *Config) ValidateAndSetDefaults() error {
+	if cfg.LogMedia == "" {
+		cfg.LogMedia = "stdout"
+	}
+	if cfg.LogLevel == 0 {
+		cfg.LogLevel = logrus.InfoLevel
+	}
+	if err := types.SetDefaultLoggerConfig(cfg.LogMedia, cfg.LogDir, cfg.LogLevel, cfg.LogMaxSize, cfg.LogMaxFiles, cfg.LogMaxAge, cfg.CompressLogs); err != nil {
+		logrus.Fatal(err.Error())
+	}
+	if cfg.LogMedia == "file" {
+		logrus.SetOutput(cfg.getLoggerForFile(blocklistMirrorLogFilePath))
+		logrus.SetFormatter(&logrus.TextFormatter{TimestampFormat: "02-01-2006 15:04:05", FullTimestamp: true})
+	}
+
 	if cfg.CrowdsecConfig.LapiKey == "" {
 		return fmt.Errorf("lapi_key is not specified")
 	}
@@ -123,9 +137,9 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		cfg.ListenURI = "127.0.0.1:41412"
 	}
 
+	validAuthenticationTypes := []string{"basic", "ip_based", "none"}
 	alreadyUsedEndpoint := make(map[string]struct{})
 	validFormats := []string{}
-	validAuthenticationTypes := []string{"basic", "ip_based", "none"}
 	for format := range FormattersByName {
 		validFormats = append(validFormats, format)
 	}
@@ -139,25 +153,8 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 			return fmt.Errorf("%s format is not supported. Supported formats are '%s'", blockList.Format, strings.Join(validFormats, ","))
 		}
 		if !contains(validAuthenticationTypes, strings.ToLower(blockList.Authentication.Type)) && blockList.Authentication.Type != "" {
-			return fmt.Errorf("%s authentication type is not supported. Supported authentication types are '%s'", blockList.Authentication, strings.Join(validAuthenticationTypes, ","))
+			return fmt.Errorf("%s authentication type is not supported. Supported authentication types are '%s'", blockList.Authentication.Type, strings.Join(validAuthenticationTypes, ","))
 		}
-	}
-
-	if cfg.LogMedia == "" {
-		cfg.LogMedia = "stdout"
-	}
-
-	if cfg.LogLevel == 0 {
-		cfg.LogLevel = logrus.InfoLevel
-	}
-
-	if err := types.SetDefaultLoggerConfig(cfg.LogMedia, cfg.LogDir, cfg.LogLevel, cfg.LogMaxSize, cfg.LogMaxFiles, cfg.LogMaxAge, cfg.CompressLogs); err != nil {
-		logrus.Fatal(err.Error())
-	}
-
-	if cfg.LogMedia == "file" {
-		logrus.SetOutput(cfg.getLoggerForFile(blocklistMirrorLogFilePath))
-		logrus.SetFormatter(&logrus.TextFormatter{TimestampFormat: "02-01-2006 15:04:05", FullTimestamp: true})
 	}
 
 	return nil
