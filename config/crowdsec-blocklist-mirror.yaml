@@ -1,6 +1,6 @@
 config_version: v1.0
 crowdsec_config:
-  lapi_key: $API_KEY
+  lapi_key: ${API_KEY}
   lapi_url: http://127.0.0.1:8080/
   update_frequency: 10s
   include_scenarios_containing: []
@@ -8,27 +8,27 @@ crowdsec_config:
   only_include_decisions_from: []
   insecure_skip_verify: false
 
-bouncer_config:
-  blocklists:
-    - format: plain_text
-      endpoint: /security/blocklist
-      authentication:
-        type: none
-        user:
-        password:
-        trusted_ips: # IP ranges, or IPs which don't require auth to access this blocklist
-          - 127.0.0.1
-          - ::1
+blocklists:
+  - format: plain_text # Supported formats are either of "plain_text"
+    endpoint: /security/blocklist
+    authentication:
+      type: none # Supported types are either of "none", "ip_based", "basic"
+      user:
+      password:
+      trusted_ips: # IP ranges, or IPs which don't require auth to access this blocklist
+        - 127.0.0.1
+        - ::1
 
-  listen_uri: 127.0.0.1:41412
-  tls:
-    cert_file:
-    key_file:
+listen_uri: 127.0.0.1:41412
+tls:
+  cert_file:
+  key_file:
 
-  metrics:
-    enabled: true
-    endpoint: /metrics
+metrics:
+  enabled: true
+  endpoint: /metrics
 
+# logging configuration
 log_media: file
 log_dir: /var/log/
 log_level: info
@@ -36,3 +36,5 @@ log_max_size: 40
 log_max_age: 30
 log_max_backups: 3
 compress_logs: true
+# enable access log of the HTTP server
+enable_access_logs: true

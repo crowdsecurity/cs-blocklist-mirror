@@ -21,8 +21,8 @@ var globalDecisionRegistry DecisionRegistry = DecisionRegistry{
 	ActiveDecisionsByValue: make(map[string]*models.Decision),
 }
 
-func runServer(cfg BouncerConfig) {
-	for _, blockListCFG := range cfg.Blocklists {
+func runServer(config Config) {
+	for _, blockListCFG := range config.Blocklists {
 		f, err := getHandlerForBlockList(blockListCFG)
 		if err != nil {
 			log.Fatal(err)
@@ -31,23 +31,29 @@ func runServer(cfg BouncerConfig) {
 		log.Infof("serving blocklist in format %s at endpoint %s", blockListCFG.Format, blockListCFG.Endpoint)
 	}
 
-	if cfg.Metrics.Enabled {
+	if config.Metrics.Enabled {
 		prometheus.MustRegister(RouteHits)
-		log.Infof("Enabling metrics at endpoint '%s' ", cfg.Metrics.Endpoint)
-		http.Handle(cfg.Metrics.Endpoint, promhttp.Handler())
+		log.Infof("Enabling metrics at endpoint '%s' ", config.Metrics.Endpoint)
+		http.Handle(config.Metrics.Endpoint, promhttp.Handler())
 	}
 
-	if cfg.TLS.CertFile != "" && cfg.TLS.KeyFile != "" {
-		log.Infof("Starting server with TLS at %s", cfg.ListenURI)
-		log.Fatal(http.ListenAndServeTLS(cfg.ListenURI, cfg.TLS.CertFile, cfg.TLS.KeyFile, nil))
+	if config.TLS.CertFile != "" && config.TLS.KeyFile != "" {
+		log.Infof("Starting server with TLS at %s", config.ListenURI)
+		log.Fatal(http.ListenAndServeTLS(
+			config.ListenURI,
+			config.TLS.CertFile,
+			config.TLS.KeyFile,
+			LoggingHandler(config.getLoggerForFile(blocklistMirrorAccessLogFilePath), http.DefaultServeMux)))
 	} else {
-		log.Infof("Starting server at %s", cfg.ListenURI)
-		log.Fatal(http.ListenAndServe(cfg.ListenURI, nil))
+		log.Infof("Starting server at %s", config.ListenURI)
+		log.Fatal(http.ListenAndServe(
+			config.ListenURI,
+			LoggingHandler(config.getLoggerForFile(blocklistMirrorAccessLogFilePath), http.DefaultServeMux)))
 	}
 }
 
 func main() {
-	configPath := flag.String("c", "", "path to crowdsec-tbd-bouncer.yaml")
+	configPath := flag.String("c", "", "path to crowdsec-blocklist-mirror.yaml")
 	bouncerVersion := flag.Bool("V", false, "display version and exit")
 	traceMode := flag.Bool("trace", false, "set trace mode")
 	debugMode := flag.Bool("debug", false, "set debug mode")
@@ -96,7 +102,7 @@ func main() {
 		decisionStreamer.Run()
 		log.Fatal("can't access LAPI")
 	}()
-	go runServer(config.BouncerConfig)
+	go runServer(config)
 
 	for decisions := range decisionStreamer.Stream {
 		if len(decisions.New) > 0 {
