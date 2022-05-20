@@ -1,4 +1,45 @@
 
 systemctl daemon-reload
-systemctl start crowdsec-blocklist-mirror
+
+
+START=0
+
+LAPI_DEFAULT_PORT="8080"
+
+if [ "$1" = "configure" ] && [ "$2" = "" ]; then
+    type cscli
+    if [ "$?" -eq "0" ] ; then
+        START=1
+        echo "cscli/crowdsec is present, generating API key"
+        unique=`date +%s`
+        API_KEY=`cscli -oraw bouncers add blocklistMirror-${unique}`
+        PORT=$(cscli config show --key "Config.API.Server.ListenURI"|cut -d ":" -f2)
+        if [ ! -z "$PORT" ]; then
+            LAPI_DEFAULT_PORT=${PORT}
+        fi
+        CROWDSEC_LAPI_URL="http://127.0.0.1:${LAPI_DEFAULT_PORT}"
+        if [ $? -eq 1 ] ; then
+            echo "failed to create API token, service won't be started."
+            START=0
+            API_KEY="<API_KEY>"
+        else
+            echo "API Key : ${API_KEY}"
+        fi
+
+        TMP=`mktemp -p /tmp/`
+        cp /etc/crowdsec/bouncers/crowdsec-blocklist-mirror.yaml ${TMP}
+        API_KEY=${API_KEY} CROWDSEC_LAPI_URL=${CROWDSEC_LAPI_URL} envsubst < ${TMP} > /etc/crowdsec/bouncers/crowdsec-blocklist-mirror.yaml
+        rm ${TMP}
+    fi
+else
+    START=1
+fi
+
+
+if [ ${START} -eq 0 ] ; then
+    echo "no api key was generated, you can generate one on your LAPI Server by running 'cscli bouncers add <bouncer_name>' and add it to '/etc/crowdsec/bouncers/crowdsec-blocklist-mirror.yaml'"
+else
+    systemctl start crowdsec-blocklist-mirror
+fi
+
 echo "crowdsec-blocklist-mirror has been sucessfully installed"
