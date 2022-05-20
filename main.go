@@ -39,16 +39,30 @@ func runServer(config Config) {
 
 	if config.TLS.CertFile != "" && config.TLS.KeyFile != "" {
 		log.Infof("Starting server with TLS at %s", config.ListenURI)
-		log.Fatal(http.ListenAndServeTLS(
-			config.ListenURI,
-			config.TLS.CertFile,
-			config.TLS.KeyFile,
-			LoggingHandler(config.getLoggerForFile(blocklistMirrorAccessLogFilePath), http.DefaultServeMux)))
+		if config.EnableAccessLogs {
+			log.Fatal(http.ListenAndServeTLS(
+				config.ListenURI,
+				config.TLS.CertFile,
+				config.TLS.KeyFile,
+				CombinedLoggingHandler(config.getLoggerForFile(blocklistMirrorAccessLogFilePath), http.DefaultServeMux)))
+		} else {
+			log.Fatal(http.ListenAndServeTLS(
+				config.ListenURI,
+				config.TLS.CertFile,
+				config.TLS.KeyFile,
+				nil))
+		}
 	} else {
 		log.Infof("Starting server at %s", config.ListenURI)
-		log.Fatal(http.ListenAndServe(
-			config.ListenURI,
-			LoggingHandler(config.getLoggerForFile(blocklistMirrorAccessLogFilePath), http.DefaultServeMux)))
+		if config.EnableAccessLogs {
+			log.Fatal(http.ListenAndServe(
+				config.ListenURI,
+				CombinedLoggingHandler(config.getLoggerForFile(blocklistMirrorAccessLogFilePath), http.DefaultServeMux)))
+		} else {
+			log.Fatal(http.ListenAndServe(
+				config.ListenURI,
+				nil))
+		}
 	}
 }
 
