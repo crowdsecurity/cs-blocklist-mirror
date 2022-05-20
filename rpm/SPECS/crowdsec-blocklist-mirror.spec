@@ -51,7 +51,9 @@ rm -rf %{buildroot}
 
 %post -p /bin/bash
 systemctl daemon-reload
+systemctl start crowdsec-blocklist-mirror
 
+echo "crowdsec-blocklist-mirror has been sucessfully installed"
  
 %changelog
 * Fri Apr 29 2022 Shivam Sandbhor <shivam@crowdsec.net>

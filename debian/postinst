@@ -1,2 +1,4 @@
 
 systemctl daemon-reload
+systemctl start crowdsec-blocklist-mirror
+echo "crowdsec-blocklist-mirror has been sucessfully installed"
