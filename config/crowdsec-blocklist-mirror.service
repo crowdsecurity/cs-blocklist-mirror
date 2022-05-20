@@ -4,7 +4,7 @@ After=syslog.target crowdsec.service
 
 [Service]
 Type=simple
-ExecStart=${BIN} -c ${CFG}crowdsec-blocklist-mirror.yaml
+ExecStart=${BIN} -c ${CFG}/crowdsec-blocklist-mirror.yaml
 
 [Install]
 WantedBy=multi-user.target

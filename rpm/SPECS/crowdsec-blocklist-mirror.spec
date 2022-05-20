@@ -29,7 +29,7 @@ BuildRequires:  make
 BUILD_VERSION=%{local_version} make
 TMP=`mktemp -p /tmp/`
 cp config/%{name}.service ${TMP}
-BIN=%{_bindir}/%{name} CFG=/etc/crowdsec/ envsubst < ${TMP} > config/%{name}.service
+BIN=%{_bindir}/%{name} CFG=/etc/crowdsec/bouncers/ envsubst < ${TMP} > config/%{name}.service
 rm ${TMP}
 
 %install
@@ -51,34 +51,6 @@ rm -rf %{buildroot}
 
 %post -p /bin/bash
 systemctl daemon-reload
-
-
-START=0
-
-systemctl is-active --quiet crowdsec
-
-if [ "$?" -eq "0" ] ; then
-    START=1
-    echo "cscli/crowdsec is present, generating API key"
-    unique=`date +%s`
-    API_KEY=`sudo cscli -oraw bouncers add blocklistMirror-${unique}`
-    if [ $? -eq 1 ] ; then
-        echo "failed to create API token, service won't be started."
-        START=0
-        API_KEY="<API_KEY>"
-    else
-        echo "API Key : ${API_KEY}"
-    fi
-fi
-
-TMP=`mktemp -p /tmp/`
-cp /etc/crowdsec/bouncers/crowdsec-blocklist-mirror.yaml ${TMP}
-API_KEY=${API_KEY} envsubst < ${TMP} > /etc/crowdsec/bouncers/crowdsec-blocklist-mirror.yaml
-rm ${TMP}
-
-if [ ${START} -eq 0 ] ; then
-    echo "no api key was generated, you can generate one on your LAPI Server by running 'cscli bouncers add <bouncer_name>' and add it to '/etc/crowdsec/bouncers/crowdsec-blocklist-mirror.yaml'"
-fi
 
  
 %changelog
