@@ -39,7 +39,7 @@ type DecisionRegistry struct {
 
 func (dr *DecisionRegistry) AddDecisions(decisions []*models.Decision) {
 	for _, decision := range decisions {
-		if _, ok := dr.ActiveDecisionsByValue[*decision.Value]; ok {
+		if _, ok := dr.ActiveDecisionsByValue[*decision.Value]; !ok {
 			activeDecisionCount.Inc()
 		}
 		dr.ActiveDecisionsByValue[*decision.Value] = decision
