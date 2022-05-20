@@ -122,6 +122,10 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		return fmt.Errorf("lapi_url is not specified")
 	}
 
+	if !strings.HasSuffix(cfg.CrowdsecConfig.LapiURL, "/") {
+		cfg.CrowdsecConfig.LapiURL = cfg.CrowdsecConfig.LapiURL + "/"
+	}
+
 	if cfg.CrowdsecConfig.UpdateFrequency == "" {
 		logrus.Warn("update_frequency is not provided")
 		cfg.CrowdsecConfig.UpdateFrequency = "10s"

@@ -66,7 +66,7 @@ if [ "$1" == "1" ] ; then
         if [ ! -z "$PORT" ]; then
             LAPI_DEFAULT_PORT=${PORT}
         fi
-        CROWDSEC_LAPI_URL="http://127.0.0.1:${LAPI_DEFAULT_PORT}"
+        CROWDSEC_LAPI_URL="http://127.0.0.1:${LAPI_DEFAULT_PORT}/"
         if [ $? -eq 1 ] ; then
             echo "failed to create API token, service won't be started."
             START=0
