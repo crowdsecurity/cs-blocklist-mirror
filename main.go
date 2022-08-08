@@ -32,7 +32,7 @@ func runServer(config Config) {
 	}
 
 	if config.Metrics.Enabled {
-		prometheus.MustRegister(RouteHits)
+		prometheus.MustRegister(RouteHits, csbouncer.TotalLAPICalls, csbouncer.TotalLAPIError)
 		log.Infof("Enabling metrics at endpoint '%s' ", config.Metrics.Endpoint)
 		http.Handle(config.Metrics.Endpoint, promhttp.Handler())
 	}
