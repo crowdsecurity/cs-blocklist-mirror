@@ -107,7 +107,7 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	if cfg.LogLevel == 0 {
 		cfg.LogLevel = logrus.InfoLevel
 	}
-	if err := types.SetDefaultLoggerConfig(cfg.LogMedia, cfg.LogDir, cfg.LogLevel, cfg.LogMaxSize, cfg.LogMaxFiles, cfg.LogMaxAge, cfg.CompressLogs); err != nil {
+	if err := types.SetDefaultLoggerConfig(cfg.LogMedia, cfg.LogDir, cfg.LogLevel, cfg.LogMaxSize, cfg.LogMaxFiles, cfg.LogMaxAge, cfg.CompressLogs, false); err != nil {
 		logrus.Fatal(err.Error())
 	}
 	if cfg.LogMedia == "file" {
@@ -161,6 +161,22 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		}
 	}
 
+	if cfg.LogMedia == "" {
+		cfg.LogMedia = "stdout"
+	}
+
+	if cfg.LogLevel == 0 {
+		cfg.LogLevel = logrus.InfoLevel
+	}
+
+	if err := types.SetDefaultLoggerConfig(cfg.LogMedia, cfg.LogDir, cfg.LogLevel, cfg.LogMaxSize, cfg.LogMaxFiles, cfg.LogMaxAge, cfg.CompressLogs, false); err != nil {
+		logrus.Fatal(err.Error())
+	}
+
+	if cfg.LogMedia == "file" {
+		logrus.SetOutput(cfg.getLoggerForFile(blocklistMirrorLogFilePath))
+		logrus.SetFormatter(&logrus.TextFormatter{TimestampFormat: "02-01-2006 15:04:05", FullTimestamp: true})
+	}
 	return nil
 }
 
