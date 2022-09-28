@@ -13,8 +13,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var blocklistMirrorLogFilePath string = "crowdsec-blocklist-mirror.log"
-var blocklistMirrorAccessLogFilePath string = "crowdsec-blocklist-mirror_access.log"
+var (
+	blocklistMirrorLogFilePath       string = "crowdsec-blocklist-mirror.log"
+	blocklistMirrorAccessLogFilePath string = "crowdsec-blocklist-mirror_access.log"
+)
 
 type CrowdsecConfig struct {
 	LapiKey                    string   `yaml:"lapi_key"`
@@ -66,7 +68,6 @@ type Config struct {
 }
 
 func (cfg *Config) getLoggerForFile(fileName string) io.Writer {
-
 	if cfg.LogMedia != "file" {
 		return os.Stdout
 	}
@@ -107,7 +108,8 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	if cfg.LogLevel == 0 {
 		cfg.LogLevel = logrus.InfoLevel
 	}
-	if err := types.SetDefaultLoggerConfig(cfg.LogMedia, cfg.LogDir, cfg.LogLevel, cfg.LogMaxSize, cfg.LogMaxFiles, cfg.LogMaxAge, cfg.CompressLogs); err != nil {
+	if err := types.SetDefaultLoggerConfig(cfg.LogMedia, cfg.LogDir, cfg.LogLevel, cfg.LogMaxSize, cfg.LogMaxFiles, cfg.LogMaxAge,
+		cfg.CompressLogs); err != nil {
 		logrus.Fatal(err.Error())
 	}
 	if cfg.LogMedia == "file" {
@@ -157,7 +159,11 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 			return fmt.Errorf("%s format is not supported. Supported formats are '%s'", blockList.Format, strings.Join(validFormats, ","))
 		}
 		if !contains(validAuthenticationTypes, strings.ToLower(blockList.Authentication.Type)) && blockList.Authentication.Type != "" {
-			return fmt.Errorf("%s authentication type is not supported. Supported authentication types are '%s'", blockList.Authentication.Type, strings.Join(validAuthenticationTypes, ","))
+			return fmt.Errorf(
+				"%s authentication type is not supported. Supported authentication types are '%s'",
+				blockList.Authentication.Type,
+				strings.Join(validAuthenticationTypes, ","),
+			)
 		}
 	}
 
