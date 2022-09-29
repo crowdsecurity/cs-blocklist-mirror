@@ -128,5 +128,4 @@ func main() {
 		globalDecisionRegistry.AddDecisions(decisions.New)
 		globalDecisionRegistry.DeleteDecisions(decisions.Deleted)
 	}
-
 }

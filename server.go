@@ -22,12 +22,12 @@ var RouteHits = prometheus.NewCounterVec(
 	[]string{"route"},
 )
 
-// var apiCountersByFormatName map[string]prometheus. = map[string]prometheus.Counter{
-// 	"plain_text": promauto.NewCounter(prometheus.CounterOpts{
-// 		Name: "total_api_calls_for_plain_text",
-// 		Help: "Total number of times blocklist in plain_text format was requested",
-// 	}),
-// }
+//	var apiCountersByFormatName map[string]prometheus. = map[string]prometheus.Counter{
+//		"plain_text": promauto.NewCounter(prometheus.CounterOpts{
+//			Name: "total_api_calls_for_plain_text",
+//			Help: "Total number of times blocklist in plain_text format was requested",
+//		}),
+//	}
 var activeDecisionCount prometheus.Gauge = promauto.NewGauge(prometheus.GaugeOpts{
 	Name: "active_decision_count",
 	Help: "Total number of decisions served by any blocklist",
