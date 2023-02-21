@@ -16,7 +16,7 @@ crowdsec_config:
   insecure_skip_verify: false
 
 blocklists:
-  - format: plain_text # Supported formats are either of "plain_text"
+  - format: plain_text # Supported formats are either of "plain_text", "microtik"
     endpoint: /security/blocklist
     authentication:
       type: none # Supported types are either of "none", "ip_based", "basic"
@@ -130,7 +130,7 @@ List of blocklists to serve. Each blocklist has the following configuration.
 
 #### `format`:
 
-Format of the blocklist. Currently only `plain_text` is supported.
+Format of the blocklist. Currently only `plain_text` and `microtik` are supported.
 
 #### `endpoint`:
 
@@ -168,7 +168,20 @@ The bouncer can expose the blocklist in the following formats. You can configure
 
 Example:
 
-```
+```text
 1.2.3.4
 4.3.2.1
+```
+
+### microtik
+
+You must have ipv6 enabled.
+
+Example:
+
+```text
+/ip firewall address-list remove [find list=CrowdSec]
+/ipv6 firewall address-list remove [find list=CrowdSec]
+/ip firewall address-list add list=CrowdSec address=1.2.3.4 comment="crowdsecurity/ssh-bf for 152h40m24.308868973s"
+/ip firewall address-list add list=CrowdSec address=4.3.2.1 comment="crowdsecurity/postfix-spam for 166h40m25.280338424s"/ipv6 firewall address-list add list=CrowdSec address=2001:470:1:c84::17 comment="crowdsecurity/ssh-bf for 165h13m42.405449876s"
 ```
