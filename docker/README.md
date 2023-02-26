@@ -162,7 +162,7 @@ List of valid IPv4 and IPv6 IPs and ranges which have access to blocklist. It's 
 
 ## Formats
 
-The bouncer can expose the blocklist in the following formats. You can configure the format of the blocklist by setting it's `format` paramter to any of the supported formats described below.
+The bouncer can expose the blocklist in the following formats. You can configure the format of the blocklist by setting it's `format` parameter to any of the supported formats described below.
 
 ### plain_text
 
