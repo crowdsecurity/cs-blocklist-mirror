@@ -3,7 +3,7 @@ ARG GOVERSION=1.18
 
 FROM golang:${GOVERSION}-alpine AS build
 WORKDIR /go/src/cs-blocklist-mirror
-RUN apk update && apk add --no-cache  libc-dev make git
+RUN apk add --update --no-cache libc-dev make git
 COPY . .
 RUN make build
 
