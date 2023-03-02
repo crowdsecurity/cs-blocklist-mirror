@@ -51,20 +51,20 @@ type TLSConfig struct {
 }
 
 type Config struct {
-	CrowdsecConfig   CrowdsecConfig    `yaml:"crowdsec_config"`
-	Blocklists       []BlockListConfig `yaml:"blocklists"`
-	ListenURI        string            `yaml:"listen_uri"`
-	TLS              TLSConfig         `yaml:"tls"`
-	Metrics          MetricConfig      `yaml:"metrics"`
-	LogLevel         logrus.Level      `yaml:"log_level"`
-	LogMedia         string            `yaml:"log_media"`
-	LogDir           string            `yaml:"log_dir"`
-	LogMaxSize       int               `yaml:"log_max_size"`
-	LogMaxAge        int               `yaml:"log_max_age"`
-	LogMaxFiles      int               `yaml:"log_max_backups"`
-	CompressLogs     *bool             `yaml:"compress_logs"`
-	ConfigVersion    string            `yaml:"config_version"`
-	EnableAccessLogs bool              `yaml:"enable_access_logs"`
+	CrowdsecConfig   CrowdsecConfig     `yaml:"crowdsec_config"`
+	Blocklists       []*BlockListConfig `yaml:"blocklists"`
+	ListenURI        string             `yaml:"listen_uri"`
+	TLS              TLSConfig          `yaml:"tls"`
+	Metrics          MetricConfig       `yaml:"metrics"`
+	LogLevel         logrus.Level       `yaml:"log_level"`
+	LogMedia         string             `yaml:"log_media"`
+	LogDir           string             `yaml:"log_dir"`
+	LogMaxSize       int                `yaml:"log_max_size"`
+	LogMaxAge        int                `yaml:"log_max_age"`
+	LogMaxFiles      int                `yaml:"log_max_backups"`
+	CompressLogs     *bool              `yaml:"compress_logs"`
+	ConfigVersion    string             `yaml:"config_version"`
+	EnableAccessLogs bool               `yaml:"enable_access_logs"`
 }
 
 func (cfg *Config) getLoggerForFile(fileName string) io.Writer {
@@ -109,7 +109,7 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		cfg.LogLevel = logrus.InfoLevel
 	}
 	if err := types.SetDefaultLoggerConfig(cfg.LogMedia, cfg.LogDir, cfg.LogLevel, cfg.LogMaxSize, cfg.LogMaxFiles, cfg.LogMaxAge,
-		cfg.CompressLogs); err != nil {
+		cfg.CompressLogs, false); err != nil {
 		logrus.Fatal(err.Error())
 	}
 	if cfg.LogMedia == "file" {
