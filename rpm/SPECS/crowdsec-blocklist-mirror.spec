@@ -1,7 +1,7 @@
 Name:           crowdsec-blocklist-mirror
 Version:        %(echo $VERSION)
 Release:        %(echo $PACKAGE_NUMBER)%{?dist}
-Summary:      CrowdSec blocklist mirror 
+Summary:        CrowdSec blocklist mirror
 
 License:        MIT
 URL:            https://crowdsec.net
@@ -89,7 +89,7 @@ else
     systemctl start crowdsec-blocklist-mirror
 fi
 
-echo "crowdsec-blocklist-mirror has been sucessfully installed"
+echo "crowdsec-blocklist-mirror has been successfully installed"
  
 %changelog
 * Fri Apr 29 2022 Shivam Sandbhor <shivam@crowdsec.net>
