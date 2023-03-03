@@ -204,7 +204,7 @@ Example:
 
 #### microtik query parameters
 
-`?listname=foo` - Set the list name to `foo`
+`?listname=foo` - Set the list name to `foo`, by default `listname` is set to `CrowdSec`
 
 example output:
 ```text
