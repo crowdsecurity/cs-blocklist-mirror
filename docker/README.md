@@ -191,7 +191,7 @@ Example:
 
 ### microtik
 
-If you your microtik router does not support ipv6, then you can use the global query parameters to only return ipv4 addresses.
+If your microtik router does not support ipv6, then you can use the global query parameters to only return ipv4 addresses.
 
 Example:
 
