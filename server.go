@@ -51,9 +51,9 @@ func (dr *DecisionRegistry) AddDecisions(decisions []*models.Decision) {
 
 func (dr *DecisionRegistry) GetActiveDecisions(filter url.Values) []*models.Decision {
 	ret := make([]*models.Decision, 0)
-	if filter.Has("ipv4only") && filter.Get("ipv4only") == "true" {
+	if filter.Has("ipv4only") {
 		dr.GetActiveIPV4Decisions(&ret)
-	} else if filter.Has("ipv6only") && filter.Get("ipv6only") == "true" {
+	} else if filter.Has("ipv6only") {
 		dr.GetActiveIPV6Decisions(&ret)
 	} else {
 		ret = make([]*models.Decision, 0, len(dr.ActiveDecisionsByValue))
