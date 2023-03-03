@@ -15,7 +15,7 @@ var FormattersByName map[string]func(w http.ResponseWriter, r *http.Request) = m
 }
 
 func PlainTextFormatter(w http.ResponseWriter, r *http.Request) {
-	decisions := r.Context().Value("decisions").([]*models.Decision)
+	decisions := r.Context().Value(globalDecisionRegistry.Key).([]*models.Decision)
 	ips := make([]string, len(decisions))
 	for i, decision := range decisions {
 		ips[i] = *decision.Value
@@ -25,7 +25,7 @@ func PlainTextFormatter(w http.ResponseWriter, r *http.Request) {
 }
 
 func MicroTikFormatter(w http.ResponseWriter, r *http.Request) {
-	decisions := r.Context().Value("decisions").([]*models.Decision)
+	decisions := r.Context().Value(globalDecisionRegistry.Key).([]*models.Decision)
 	ips := make([]string, len(decisions))
 	listName := r.URL.Query().Get("listname")
 	if listName == "" {

@@ -12,7 +12,6 @@ import (
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -35,8 +34,10 @@ var activeDecisionCount prometheus.Gauge = promauto.NewGauge(prometheus.GaugeOpt
 	Help: "Total number of decisions served by any blocklist",
 })
 
+type Key int
 type DecisionRegistry struct {
 	ActiveDecisionsByValue map[string]*models.Decision
+	Key                    Key
 }
 
 func (dr *DecisionRegistry) AddDecisions(decisions []*models.Decision) {
@@ -101,7 +102,7 @@ func satisfiesBasicAuth(r *http.Request, user, password string) bool {
 	}
 	expectedVal := fmt.Sprintf("Basic %s", basicAuth(user, password))
 	foundVal := r.Header[http.CanonicalHeaderKey("Authorization")][0]
-	log.WithFields(logrus.Fields{
+	log.WithFields(log.Fields{
 		"expected": expectedVal,
 		"found":    foundVal,
 	}).Debug("checking basic auth")
@@ -158,7 +159,7 @@ func decisionMiddleware(next http.HandlerFunc) func(w http.ResponseWriter, r *ht
 			http.Error(w, "no decisions available", http.StatusNotFound)
 			return
 		}
-		ctx := context.WithValue(r.Context(), "decisions", decisions)
+		ctx := context.WithValue(r.Context(), globalDecisionRegistry.Key, decisions)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 }
@@ -167,13 +168,13 @@ func authMiddleware(blockListCfg *BlockListConfig, next http.HandlerFunc) func(w
 	return func(w http.ResponseWriter, r *http.Request) {
 		ip, _, err := net.SplitHostPort(r.RemoteAddr)
 		if err != nil {
-			logrus.Errorf("error while spliting hostport for %s: %v", r.RemoteAddr, err)
+			log.Errorf("error while spliting hostport for %s: %v", r.RemoteAddr, err)
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
 		trustedIPs, err := getTrustedIPs(blockListCfg.Authentication.TrustedIPs)
 		if err != nil {
-			logrus.Errorf("error while parsing trusted IPs: %v", err)
+			log.Errorf("error while parsing trusted IPs: %v", err)
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
