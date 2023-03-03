@@ -46,7 +46,11 @@ func MicroTikFormatter(w http.ResponseWriter, r *http.Request) {
 		)
 	}
 	sort.Strings(ips)
-	w.Write([]byte(fmt.Sprintf("/ip firewall address-list remove [find list=%s]\n", listName) +
-		fmt.Sprintf("/ipv6 firewall address-list remove [find list=%s]\n", listName) +
-		strings.Join(ips, "\n")))
+	if !r.URL.Query().Has("ipv6only") {
+		w.Write([]byte(fmt.Sprintf("/ip firewall address-list remove [find list=%s]\n", listName)))
+	}
+	if !r.URL.Query().Has("ipv4only") {
+		w.Write([]byte(fmt.Sprintf("/ipv6 firewall address-list remove [find list=%s]\n", listName)))
+	}
+	w.Write([]byte(strings.Join(ips, "\n")))
 }
