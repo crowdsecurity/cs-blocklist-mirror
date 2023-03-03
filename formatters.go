@@ -37,8 +37,9 @@ func MicroTikFormatter(w http.ResponseWriter, r *http.Request) {
 			ipType = "/ipv6"
 		}
 		ips[i] = fmt.Sprintf(
-			"%s firewall address-list add list=CrowdSec address=%s comment=\"%s for %s\"",
+			"%s firewall address-list add list=%s address=%s comment=\"%s for %s\"",
 			ipType,
+			listName,
 			*decision.Value,
 			*decision.Scenario,
 			*decision.Duration,
