@@ -197,7 +197,7 @@ func authMiddleware(blockListCfg *BlockListConfig, next http.HandlerFunc) func(w
 
 func getHandlerForBlockList(blockListCfg *BlockListConfig) (func(w http.ResponseWriter, r *http.Request), error) {
 	if _, ok := FormattersByName[blockListCfg.Format]; !ok {
-		log.Fatal("unsupported format")
+		return nil, fmt.Errorf("unknown format %s", blockListCfg.Format)
 	}
 	return authMiddleware(blockListCfg, metricsMiddleware(blockListCfg, decisionMiddleware(FormattersByName[blockListCfg.Format]))), nil
 }
