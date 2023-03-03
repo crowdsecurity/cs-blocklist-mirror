@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
@@ -61,6 +62,9 @@ func (dr *DecisionRegistry) GetActiveDecisions(filter url.Values) []*models.Deci
 			ret = append(ret, v)
 		}
 	}
+	sort.SliceStable(ret, func(i, j int) bool {
+		return *ret[i].Value < *ret[j].Value
+	})
 	return ret
 }
 
