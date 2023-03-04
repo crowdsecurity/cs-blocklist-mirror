@@ -51,16 +51,12 @@ func (dr *DecisionRegistry) AddDecisions(decisions []*models.Decision) {
 }
 
 func (dr *DecisionRegistry) GetActiveDecisions(filter url.Values) []*models.Decision {
-	ret := make([]*models.Decision, 0)
-	if filter.Has("ipv4only") {
-		dr.GetActiveIPV4Decisions(&ret)
-	} else if filter.Has("ipv6only") {
+	ret := make([]*models.Decision, 0, len(dr.ActiveDecisionsByValue))
+	if !filter.Has("ipv4only") {
 		dr.GetActiveIPV6Decisions(&ret)
-	} else {
-		ret = make([]*models.Decision, 0, len(dr.ActiveDecisionsByValue))
-		for _, v := range dr.ActiveDecisionsByValue {
-			ret = append(ret, v)
-		}
+	}
+	if !filter.Has("ipv6only") {
+		dr.GetActiveIPV4Decisions(&ret)
 	}
 	sort.SliceStable(ret, func(i, j int) bool {
 		return *ret[i].Value < *ret[j].Value
