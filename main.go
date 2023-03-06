@@ -17,7 +17,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var globalDecisionRegistry DecisionRegistry = DecisionRegistry{
+var globalDecisionRegistry = DecisionRegistry{
 	ActiveDecisionsByValue: make(map[string]*models.Decision),
 }
 
@@ -27,6 +27,7 @@ func runServer(config Config) {
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		http.HandleFunc(blockListCFG.Endpoint, f)
 		log.Infof("serving blocklist in format %s at endpoint %s", blockListCFG.Format, blockListCFG.Endpoint)
 	}
@@ -39,6 +40,7 @@ func runServer(config Config) {
 
 	if config.TLS.CertFile != "" && config.TLS.KeyFile != "" {
 		log.Infof("Starting server with TLS at %s", config.ListenURI)
+
 		if config.EnableAccessLogs {
 			log.Fatal(http.ListenAndServeTLS(
 				config.ListenURI,
@@ -83,6 +85,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not parse configuration: %s", err)
 	}
+
 	if err := config.ValidateAndSetDefaults(); err != nil {
 		log.Fatal(err)
 	}
@@ -122,9 +125,11 @@ func main() {
 		if len(decisions.New) > 0 {
 			log.Infof("received %d new decisions", len(decisions.New))
 		}
+
 		if len(decisions.Deleted) > 0 {
 			log.Infof("received %d expired decisions", len(decisions.Deleted))
 		}
+
 		globalDecisionRegistry.AddDecisions(decisions.New)
 		globalDecisionRegistry.DeleteDecisions(decisions.Deleted)
 	}

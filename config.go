@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	blocklistMirrorLogFilePath       string = "crowdsec-blocklist-mirror.log"
-	blocklistMirrorAccessLogFilePath string = "crowdsec-blocklist-mirror_access.log"
+	blocklistMirrorLogFilePath       = "crowdsec-blocklist-mirror.log"
+	blocklistMirrorAccessLogFilePath = "crowdsec-blocklist-mirror_access.log"
 )
 
 type CrowdsecConfig struct {
@@ -75,22 +75,27 @@ func (cfg *Config) getLoggerForFile(fileName string) io.Writer {
 	if cfg.LogDir == "" {
 		cfg.LogDir = "/var/log/"
 	}
+
 	_maxsize := 40
 	if cfg.LogMaxSize != 0 {
 		_maxsize = cfg.LogMaxSize
 	}
+
 	_maxfiles := 3
 	if cfg.LogMaxFiles != 0 {
 		_maxfiles = cfg.LogMaxFiles
 	}
+
 	_maxage := 30
 	if cfg.LogMaxAge != 0 {
 		_maxage = cfg.LogMaxAge
 	}
+
 	_compress := true
 	if cfg.CompressLogs != nil {
 		_compress = *cfg.CompressLogs
 	}
+
 	logOutput := &lumberjack.Logger{
 		Filename:   path.Join(cfg.LogDir, fileName),
 		MaxSize:    _maxsize,
@@ -98,6 +103,7 @@ func (cfg *Config) getLoggerForFile(fileName string) io.Writer {
 		MaxAge:     _maxage,
 		Compress:   _compress,
 	}
+
 	return logOutput
 }
 
@@ -105,13 +111,16 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	if cfg.LogMedia == "" {
 		cfg.LogMedia = "stdout"
 	}
+
 	if cfg.LogLevel == 0 {
 		cfg.LogLevel = logrus.InfoLevel
 	}
+
 	if err := types.SetDefaultLoggerConfig(cfg.LogMedia, cfg.LogDir, cfg.LogLevel, cfg.LogMaxSize, cfg.LogMaxFiles, cfg.LogMaxAge,
 		cfg.CompressLogs, false); err != nil {
 		logrus.Fatal(err.Error())
 	}
+
 	if cfg.LogMedia == "file" {
 		logrus.SetOutput(cfg.getLoggerForFile(blocklistMirrorLogFilePath))
 		logrus.SetFormatter(&logrus.TextFormatter{TimestampFormat: "02-01-2006 15:04:05", FullTimestamp: true})
@@ -120,32 +129,34 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	if cfg.CrowdsecConfig.LapiKey == "" {
 		return fmt.Errorf("lapi_key is not specified")
 	}
+
 	if cfg.CrowdsecConfig.LapiURL == "" {
 		return fmt.Errorf("lapi_url is not specified")
 	}
 
 	if !strings.HasSuffix(cfg.CrowdsecConfig.LapiURL, "/") {
-		cfg.CrowdsecConfig.LapiURL = cfg.CrowdsecConfig.LapiURL + "/"
+		cfg.CrowdsecConfig.LapiURL += "/"
 	}
 
 	if cfg.CrowdsecConfig.UpdateFrequency == "" {
-		logrus.Warn("update_frequency is not provided")
 		cfg.CrowdsecConfig.UpdateFrequency = "10s"
+		logrus.Warnf("update_frequency is not provided; assuming %s", cfg.CrowdsecConfig.UpdateFrequency)
 	}
 
 	if cfg.ConfigVersion == "" {
-		logrus.Warn("config version is not provided; assuming v1.0")
 		cfg.ConfigVersion = "v1.0"
+		logrus.Warnf("config version is not provided; assuming %s", cfg.ConfigVersion)
 	}
 
 	if cfg.ListenURI == "" {
-		logrus.Warn("listen_uri is not provided ; assuming 127.0.0.1:41412")
 		cfg.ListenURI = "127.0.0.1:41412"
+		logrus.Warnf("listen_uri is not provided ; assuming %s", cfg.ListenURI)
 	}
 
 	validAuthenticationTypes := []string{"basic", "ip_based", "none"}
 	alreadyUsedEndpoint := make(map[string]struct{})
 	validFormats := []string{}
+
 	for format := range FormattersByName {
 		validFormats = append(validFormats, format)
 	}
@@ -154,10 +165,13 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		if _, ok := alreadyUsedEndpoint[blockList.Endpoint]; ok {
 			return fmt.Errorf("%s endpoint used more than once", blockList.Endpoint)
 		}
+
 		alreadyUsedEndpoint[blockList.Endpoint] = struct{}{}
+
 		if !contains(validFormats, blockList.Format) {
 			return fmt.Errorf("%s format is not supported. Supported formats are '%s'", blockList.Format, strings.Join(validFormats, ","))
 		}
+
 		if !contains(validAuthenticationTypes, strings.ToLower(blockList.Authentication.Type)) && blockList.Authentication.Type != "" {
 			return fmt.Errorf(
 				"%s authentication type is not supported. Supported authentication types are '%s'",
@@ -171,15 +185,17 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 }
 
 func newConfig(path string) (Config, error) {
-	if data, err := os.ReadFile(path); err != nil {
+	data, err := os.ReadFile(path)
+	if err != nil {
 		return Config{}, err
-	} else {
-		ret := Config{}
-		if err := yaml.Unmarshal(data, &ret); err != nil {
-			return Config{}, err
-		}
-		return ret, nil
 	}
+
+	ret := Config{}
+	if err := yaml.Unmarshal(data, &ret); err != nil {
+		return Config{}, err
+	}
+
+	return ret, nil
 }
 
 func contains(arr []string, item string) bool {
@@ -188,5 +204,6 @@ func contains(arr []string, item string) bool {
 			return true
 		}
 	}
+
 	return false
 }

@@ -1,5 +1,9 @@
 # see https://github.com/golangci/golangci-lint/blob/master/.golangci.example.yml
 
+run:
+  skip-files:
+    - logging.go
+
 linters-settings:
   gocyclo:
     min-complexity: 30
@@ -66,6 +70,7 @@ linters:
     # - funlen              # Tool for detection of long functions
     # - gci                 # Gci control golang package import order and make it always deterministic.
     # - gochecknoinits      # Checks that no init functions are present in Go code
+    # - gocritic            # Provides diagnostics that check for bugs, performance and style issues.
     # - gofmt               # Gofmt checks whether code was gofmt-ed. By default this tool runs with -s option to check for code simplification
     # - goheader            # Checks is file header matches to pattern
     # - goimports           # In addition to fixing imports, goimports also formats your code in the same style as gofmt.
@@ -78,6 +83,7 @@ linters:
     # - importas            # Enforces consistent import aliases
     # - ineffassign         # Detects when assignments to existing variables are not used
     # - interfacebloat      # A linter that checks the number of methods inside an interface.
+    # - ireturn             # Accept Interfaces, Return Concrete Types
     # - lll                 # Reports long lines
     # - logrlint            # Check logr arguments.
     # - makezero            # Finds slice declarations with non-zero initial length
@@ -92,6 +98,7 @@ linters:
     # - prealloc            # Finds slice declarations that could potentially be preallocated
     # - predeclared         # find code that shadows one of Go's predeclared identifiers
     # - reassign            # Checks that package variables are not reassigned
+    # - revive              # Fast, configurable, extensible, flexible, and beautiful linter for Go. Drop-in replacement of golint.
     # - rowserrcheck        # checks whether Err of rows is checked successfully
     # - sqlclosecheck       # Checks that sql.Rows and sql.Stmt are closed.
     # - staticcheck         # (megacheck): Staticcheck is a go vet on steroids, applying a ton of static analysis checks
@@ -101,6 +108,7 @@ linters:
     # - tparallel           # tparallel detects inappropriate usage of t.Parallel() method in your Go test codes
     # - typecheck           # Like the front-end of a Go compiler, parses and type-checks Go code
     # - unconvert           # Remove unnecessary type conversions
+    # - unparam             # Reports unused function parameters
     # - unused              # (megacheck): Checks Go code for unused constants, variables, functions and types
     # - usestdlibvars       # A linter that detect the possibility to use variables/constants from the Go standard library.
     # - wastedassign        # wastedassign finds wasted assignment statements.
@@ -111,10 +119,8 @@ linters:
     - promlinter            # Check Prometheus metrics naming via promlint
     - errcheck              # Errcheck is a program for checking for unchecked errors in go programs. These unchecked errors can be critical bugs in some cases
     - forcetypeassert       # finds forced type assertions
-    - gocritic              # Provides diagnostics that check for bugs, performance and style issues.
     - godot                 # Check if comments end in a period
     - gosec                 # (gas): Inspects source code for security problems
-    - revive                # Fast, configurable, extensible, flexible, and beautiful linter for Go. Drop-in replacement of golint.
     - wrapcheck             # Checks that errors returned from external packages are wrapped
 
     #
@@ -122,8 +128,6 @@ linters:
     #
 
     - gomnd                 # An analyzer to detect magic numbers.
-    - ireturn               # Accept Interfaces, Return Concrete Types
-    - unparam               # Reports unused function parameters
 
     #
     # Formatting only, useful in IDE but should not be forced on CI?
@@ -166,3 +170,6 @@ issues:
     - linters:
         - govet
       text: "shadow: declaration of \"err\" shadows declaration"
+    - linters:
+        - revive
+      text: "that stutters; consider calling this"

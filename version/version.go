@@ -25,6 +25,7 @@ func ShowStr() string {
 	ret += fmt.Sprintf("version: %s-%s\n", Version, Tag)
 	ret += fmt.Sprintf("BuildDate: %s\n", BuildDate)
 	ret += fmt.Sprintf("GoVersion: %s\n", GoVersion)
+
 	return ret
 }
 
