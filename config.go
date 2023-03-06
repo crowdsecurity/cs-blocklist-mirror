@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/crowdsecurity/crowdsec/pkg/types"
+	"github.com/crowdsecurity/crowdsec/pkg/yamlpatch"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"gopkg.in/yaml.v2"
@@ -170,16 +171,29 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	return nil
 }
 
-func newConfig(path string) (Config, error) {
-	if data, err := os.ReadFile(path); err != nil {
-		return Config{}, err
-	} else {
-		ret := Config{}
-		if err := yaml.Unmarshal(data, &ret); err != nil {
-			return Config{}, err
-		}
-		return ret, nil
+func mergedConfig(configPath string) ([]byte, error) {
+	patcher := yamlpatch.NewPatcher(configPath, ".local")
+	data, err := patcher.MergedPatchContent()
+	if err != nil {
+		return nil, err
 	}
+	return data, nil
+}
+
+func newConfig(reader io.Reader) (Config, error) {
+	config := Config{}
+
+	fcontent, err := io.ReadAll(reader)
+	if err != nil {
+		return config, err
+	}
+
+	err = yaml.Unmarshal(fcontent, &config)
+	if err != nil {
+		return config, fmt.Errorf("failed to unmarshal: %w", err)
+	}
+
+	return config, nil
 }
 
 func contains(arr []string, item string) bool {
