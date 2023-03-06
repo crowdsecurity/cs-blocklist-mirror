@@ -58,9 +58,11 @@ func (dr *DecisionRegistry) GetActiveDecisions(filter url.Values) []*models.Deci
 	if !filter.Has("ipv6only") {
 		dr.GetActiveIPV4Decisions(&ret)
 	}
-	sort.SliceStable(ret, func(i, j int) bool {
-		return *ret[i].Value < *ret[j].Value
-	})
+	if !filter.Has("nosort") {
+		sort.SliceStable(ret, func(i, j int) bool {
+			return *ret[i].Value < *ret[j].Value
+		})
+	}
 	return ret
 }
 
