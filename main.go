@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"net/http"
@@ -79,7 +80,16 @@ func main() {
 		os.Exit(0)
 	}
 
-	config, err := newConfig(*configPath)
+	if configPath == nil || *configPath == "" {
+		log.Fatalf("configuration file is required")
+	}
+
+	configBytes, err := mergedConfig(*configPath)
+	if err != nil {
+		log.Fatalf("unable to read config file: %s", err)
+	}
+
+	config, err := newConfig(bytes.NewReader(configBytes))
 	if err != nil {
 		log.Fatalf("could not parse configuration: %s", err)
 	}
