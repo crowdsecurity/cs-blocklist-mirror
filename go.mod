@@ -1,6 +1,6 @@
 module github.com/crowdsecurity/cs-blocklist-mirror
 
-go 1.18
+go 1.20
 
 require (
 	github.com/crowdsecurity/crowdsec v1.4.6
@@ -16,11 +16,8 @@ require (
 	github.com/antonmedv/expr v1.12.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/buger/jsonparser v1.1.1 // indirect
-	github.com/c-robinson/iplib v1.0.6 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/crowdsecurity/grokky v0.1.0 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-openapi/analysis v0.21.4 // indirect
 	github.com/go-openapi/errors v0.20.3 // indirect
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
@@ -30,7 +27,6 @@ require (
 	github.com/go-openapi/strfmt v0.21.3 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
 	github.com/go-openapi/validate v0.22.1 // indirect
-	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
