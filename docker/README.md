@@ -175,9 +175,9 @@ Example usage
 ```
 http://localhost:41412/security/blocklist?ipv6only
 ```
-`?nosort` - Does not sort IP's
+`?nosort` - Do not sort IP's
 
-> Only use if you do not care about the sorting of the list, can  result in average 1ms improvement 
+> Only use if you do not care about the sorting of the list, can result in average 1ms improvement 
 
 Example usage
 ```
