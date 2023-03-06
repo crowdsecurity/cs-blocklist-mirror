@@ -17,8 +17,7 @@ BUILD_TAG="$(shell git rev-parse HEAD)"
 LD_OPTS_VARS=\
 -X 'github.com/crowdsecurity/cs-blocklist-mirror/version.Version=$(BUILD_VERSION)' \
 -X 'github.com/crowdsecurity/cs-blocklist-mirror/version.BuildDate=$(BUILD_TIMESTAMP)' \
--X 'github.com/crowdsecurity/cs-blocklist-mirror/version.Tag=$(BUILD_TAG)' \
--X 'github.com/crowdsecurity/cs-blocklist-mirror/version.GoVersion=$(BUILD_GOVERSION)'
+-X 'github.com/crowdsecurity/cs-blocklist-mirror/version.Tag=$(BUILD_TAG)'
 
 ifdef BUILD_STATIC
 	export LD_OPTS=-ldflags "-a -v -s -w -extldflags '-static' $(LD_OPTS_VARS)" -tags netgo
@@ -35,7 +34,7 @@ all: clean build
 
 goversion:
 	CURRENT_GOVERSION="$(shell go version | cut -d " " -f3 | sed -r 's/[go]+//g')"
-	REQUIRE_GOVERSION="1.17"
+	REQUIRE_GOVERSION="1.20"
 	RESPECT_VERSION="$(shell echo "$(CURRENT_GOVERSION),$(REQUIRE_GOVERSION)" | tr ',' '\n' | sort -V)"
 
 build: goversion clean
