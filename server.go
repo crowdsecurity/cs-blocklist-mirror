@@ -1,17 +1,19 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
+	"net/url"
+	"sort"
 	"strings"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 var RouteHits = prometheus.NewCounterVec(
@@ -33,8 +35,10 @@ var activeDecisionCount prometheus.Gauge = promauto.NewGauge(prometheus.GaugeOpt
 	Help: "Total number of decisions served by any blocklist",
 })
 
+type Key int
 type DecisionRegistry struct {
 	ActiveDecisionsByValue map[string]*models.Decision
+	Key                    Key
 }
 
 func (dr *DecisionRegistry) AddDecisions(decisions []*models.Decision) {
@@ -46,14 +50,38 @@ func (dr *DecisionRegistry) AddDecisions(decisions []*models.Decision) {
 	}
 }
 
-func (dr *DecisionRegistry) GetActiveDecisions() []*models.Decision {
-	ret := make([]*models.Decision, len(dr.ActiveDecisionsByValue))
-	i := 0
-	for _, v := range dr.ActiveDecisionsByValue {
-		ret[i] = v
-		i++
+func (dr *DecisionRegistry) GetActiveDecisions(filter url.Values) []*models.Decision {
+	ret := make([]*models.Decision, 0, len(dr.ActiveDecisionsByValue))
+	if !filter.Has("ipv4only") {
+		dr.GetActiveIPV6Decisions(&ret)
+	}
+	if !filter.Has("ipv6only") {
+		dr.GetActiveIPV4Decisions(&ret)
+	}
+	if !filter.Has("nosort") {
+		sort.SliceStable(ret, func(i, j int) bool {
+			return *ret[i].Value < *ret[j].Value
+		})
 	}
 	return ret
+}
+
+func (dr *DecisionRegistry) GetActiveIPV4Decisions(ret *[]*models.Decision) {
+	for _, v := range dr.ActiveDecisionsByValue {
+		if strings.Contains(*v.Value, ":") {
+			continue
+		}
+		*ret = append(*ret, v)
+	}
+}
+
+func (dr *DecisionRegistry) GetActiveIPV6Decisions(ret *[]*models.Decision) {
+	for _, v := range dr.ActiveDecisionsByValue {
+		if strings.Contains(*v.Value, ".") {
+			continue
+		}
+		*ret = append(*ret, v)
+	}
 }
 
 func (dr *DecisionRegistry) DeleteDecisions(decisions []*models.Decision) {
@@ -76,6 +104,10 @@ func satisfiesBasicAuth(r *http.Request, user, password string) bool {
 	}
 	expectedVal := fmt.Sprintf("Basic %s", basicAuth(user, password))
 	foundVal := r.Header[http.CanonicalHeaderKey("Authorization")][0]
+	log.WithFields(log.Fields{
+		"expected": expectedVal,
+		"found":    foundVal,
+	}).Debug("checking basic auth")
 	return expectedVal == foundVal
 }
 
@@ -113,23 +145,41 @@ func networksContainIP(networks []net.IPNet, ip string) bool {
 	return false
 }
 
-func getHandlerForBlockList(blockListCfg *BlockListConfig) (func(w http.ResponseWriter, r *http.Request), error) {
-	trustedIPs, err := getTrustedIPs(blockListCfg.Authentication.TrustedIPs)
-	if err != nil {
-		return nil, err
-	}
-	f := func(w http.ResponseWriter, r *http.Request) {
+func metricsMiddleware(blockListCfg *BlockListConfig, next http.HandlerFunc) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		RouteHits.WithLabelValues(
 			blockListCfg.Endpoint,
 		).Inc()
+		next.ServeHTTP(w, r)
+	}
+}
 
+func decisionMiddleware(next http.HandlerFunc) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		decisions := globalDecisionRegistry.GetActiveDecisions(r.URL.Query())
+		if len(decisions) == 0 {
+			http.Error(w, "no decisions available", http.StatusNotFound)
+			return
+		}
+		ctx := context.WithValue(r.Context(), globalDecisionRegistry.Key, decisions)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	}
+}
+
+func authMiddleware(blockListCfg *BlockListConfig, next http.HandlerFunc) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		ip, _, err := net.SplitHostPort(r.RemoteAddr)
 		if err != nil {
-			logrus.Errorf("error while spliting hostport for %s: %v", r.RemoteAddr, err)
+			log.Errorf("error while spliting hostport for %s: %v", r.RemoteAddr, err)
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
-
+		trustedIPs, err := getTrustedIPs(blockListCfg.Authentication.TrustedIPs)
+		if err != nil {
+			log.Errorf("error while parsing trusted IPs: %v", err)
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
 		switch strings.ToLower(blockListCfg.Authentication.Type) {
 		case "ip_based":
 			if !networksContainIP(trustedIPs, ip) {
@@ -143,13 +193,13 @@ func getHandlerForBlockList(blockListCfg *BlockListConfig) (func(w http.Response
 			}
 		case "", "none":
 		}
-
-		if _, ok := FormattersByName[blockListCfg.Format]; !ok {
-			log.Fatal("unsupported format")
-		}
-		w.Write(
-			[]byte(FormattersByName[blockListCfg.Format](globalDecisionRegistry.GetActiveDecisions())),
-		)
+		next.ServeHTTP(w, r)
 	}
-	return f, nil
+}
+
+func getHandlerForBlockList(blockListCfg *BlockListConfig) (func(w http.ResponseWriter, r *http.Request), error) {
+	if _, ok := FormattersByName[blockListCfg.Format]; !ok {
+		return nil, fmt.Errorf("unknown format %s", blockListCfg.Format)
+	}
+	return authMiddleware(blockListCfg, metricsMiddleware(blockListCfg, decisionMiddleware(FormattersByName[blockListCfg.Format]))), nil
 }

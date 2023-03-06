@@ -160,6 +160,30 @@ Password for the provided user and using `basic` authentication.
 
 List of valid IPv4 and IPv6 IPs and ranges which have access to blocklist. It's only applicable when authentication `type` is `ip_based`.
 
+## Global RunTime Query Parameters
+
+`?ipv4only` - Only return IPv4 addresses
+
+Example usage
+```
+http://localhost:41412/security/blocklist?ipv4only
+```
+
+`?ipv6only` - Only return IPv6 addresses
+
+Example usage
+```
+http://localhost:41412/security/blocklist?ipv6only
+```
+`?nosort` - Do not sort IP's
+
+> Only use if you do not care about the sorting of the list, can result in average 1ms improvement 
+
+Example usage
+```
+http://localhost:41412/security/blocklist?nosort
+```
+
 ## Formats
 
 The bouncer can expose the blocklist in the following formats. You can configure the format of the blocklist by setting it's `format` parameter to any of the supported formats described below.
@@ -175,7 +199,7 @@ Example:
 
 ### microtik
 
-You must have ipv6 enabled.
+If your microtik router does not support ipv6, then you can use the global query parameters to only return ipv4 addresses.
 
 Example:
 
@@ -184,4 +208,16 @@ Example:
 /ipv6 firewall address-list remove [find list=CrowdSec]
 /ip firewall address-list add list=CrowdSec address=1.2.3.4 comment="crowdsecurity/ssh-bf for 152h40m24.308868973s"
 /ip firewall address-list add list=CrowdSec address=4.3.2.1 comment="crowdsecurity/postfix-spam for 166h40m25.280338424s"/ipv6 firewall address-list add list=CrowdSec address=2001:470:1:c84::17 comment="crowdsecurity/ssh-bf for 165h13m42.405449876s"
+```
+
+#### microtik query parameters
+
+`?listname=foo` - Set the list name to `foo`, by default `listname` is set to `CrowdSec`
+
+example output:
+```text
+/ip firewall address-list remove [find list=foo]
+/ipv6 firewall address-list remove [find list=foo]
+/ip firewall address-list add list=foo address=1.2.3.4 comment="crowdsecurity/ssh-bf for 152h40m24.308868973s"
+/ip firewall address-list add list=foo address=4.3.2.1 comment="crowdsecurity/postfix-spam for 166h40m25.280338424s"/ipv6 firewall address-list add list=foo address=2001:470:1:c84::17 comment="crowdsecurity/ssh-bf for 165h13m42.405449876s"
 ```
