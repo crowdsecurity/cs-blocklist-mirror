@@ -3,6 +3,7 @@ package version
 import (
 	"fmt"
 	"log"
+	"runtime"
 )
 
 /*
@@ -14,10 +15,10 @@ Additional labels for pre-release and build metadata are available as extensions
 */
 
 var (
-	Version   string // = "v0.0.0"
-	BuildDate string // = "I don't remember exactly"
-	Tag       string // = "dev"
-	GoVersion string // = "1.13"
+	Version   string                  // = "v0.0.0"
+	BuildDate string                  // = "2023-03-06_09:55:34"
+	Tag       string                  // = "dev"
+	GoVersion = runtime.Version()[2:] // = "1.20"
 )
 
 func ShowStr() string {
