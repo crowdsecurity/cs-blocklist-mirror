@@ -10,7 +10,6 @@ GOARCH ?= amd64
 
 # Current versioning information from env
 BUILD_VERSION?="$(shell git describe --tags)"
-BUILD_GOVERSION="$(shell go version | cut -d " " -f3 | sed -r 's/[go]+//g')"
 BUILD_TIMESTAMP=$(shell date +%F"_"%T)
 BUILD_TAG="$(shell git rev-parse HEAD)"
 
@@ -31,11 +30,6 @@ BINARY_NAME=crowdsec-blocklist-mirror
 RELDIR = "crowdsec-blocklist-mirror-${BUILD_VERSION}"
 
 all: clean build
-
-goversion:
-	CURRENT_GOVERSION="$(shell go version | cut -d " " -f3 | sed -r 's/[go]+//g')"
-	REQUIRE_GOVERSION="1.20"
-	RESPECT_VERSION="$(shell echo "$(CURRENT_GOVERSION),$(REQUIRE_GOVERSION)" | tr ',' '\n' | sort -V)"
 
 build: goversion clean
 	$(GOBUILD) $(LD_OPTS) -o $(BINARY_NAME)
@@ -60,3 +54,5 @@ release: build
 	@chmod +x $(RELDIR)/uninstall.sh
 	@chmod +x $(RELDIR)/upgrade.sh
 	@tar cvzf crowdsec-blocklist-mirror-$(GOOS)-$(GOARCH).tgz $(RELDIR)
+
+include mk/goversion.mk
