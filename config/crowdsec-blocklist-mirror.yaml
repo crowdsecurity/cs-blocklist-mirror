@@ -9,7 +9,7 @@ crowdsec_config:
   insecure_skip_verify: false
 
 blocklists:
-  - format: plain_text # Supported formats are either of "plain_text", "microtik"
+  - format: plain_text # Supported formats are either of "plain_text", "mikrotik"
     endpoint: /security/blocklist
     authentication:
       type: none # Supported types are either of "none", "ip_based", "basic"

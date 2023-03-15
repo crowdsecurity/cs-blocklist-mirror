@@ -10,7 +10,7 @@ import (
 
 var FormattersByName map[string]func(w http.ResponseWriter, r *http.Request) = map[string]func(w http.ResponseWriter, r *http.Request){
 	"plain_text": PlainTextFormatter,
-	"microtik":   MicroTikFormatter,
+	"mikrotik":   MikroTikFormatter,
 }
 
 func PlainTextFormatter(w http.ResponseWriter, r *http.Request) {
@@ -20,7 +20,7 @@ func PlainTextFormatter(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func MicroTikFormatter(w http.ResponseWriter, r *http.Request) {
+func MikroTikFormatter(w http.ResponseWriter, r *http.Request) {
 	decisions := r.Context().Value(globalDecisionRegistry.Key).([]*models.Decision)
 	listName := r.URL.Query().Get("listname")
 	if listName == "" {
