@@ -16,7 +16,7 @@ crowdsec_config:
   insecure_skip_verify: false
 
 blocklists:
-  - format: plain_text # Supported formats are either of "plain_text", "microtik"
+  - format: plain_text # Supported formats are either of "plain_text", "mikrotik"
     endpoint: /security/blocklist
     authentication:
       type: none # Supported types are either of "none", "ip_based", "basic"
@@ -130,7 +130,7 @@ List of blocklists to serve. Each blocklist has the following configuration.
 
 #### `format`:
 
-Format of the blocklist. Currently only `plain_text` and `microtik` are supported.
+Format of the blocklist. Currently only `plain_text` and `mikrotik` are supported.
 
 #### `endpoint`:
 
@@ -197,9 +197,9 @@ Example:
 4.3.2.1
 ```
 
-### microtik
+### mikrotik
 
-If your microtik router does not support ipv6, then you can use the global query parameters to only return ipv4 addresses.
+If your mikrotik router does not support ipv6, then you can use the global query parameters to only return ipv4 addresses.
 
 Example:
 
@@ -210,7 +210,7 @@ Example:
 /ip firewall address-list add list=CrowdSec address=4.3.2.1 comment="crowdsecurity/postfix-spam for 166h40m25.280338424s"/ipv6 firewall address-list add list=CrowdSec address=2001:470:1:c84::17 comment="crowdsecurity/ssh-bf for 165h13m42.405449876s"
 ```
 
-#### microtik query parameters
+#### mikrotik query parameters
 
 `?listname=foo` - Set the list name to `foo`, by default `listname` is set to `CrowdSec`
 
