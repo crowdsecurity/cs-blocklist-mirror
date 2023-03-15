@@ -11,20 +11,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/crowdsecurity/crowdsec/pkg/apiclient"
+	"github.com/crowdsecurity/crowdsec/pkg/models"
+	"github.com/crowdsecurity/crowdsec/pkg/types"
+	"github.com/crowdsecurity/cs-blocklist-mirror/version"
+	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
-
-	"github.com/crowdsecurity/crowdsec/pkg/apiclient"
-	"github.com/crowdsecurity/crowdsec/pkg/models"
-	"github.com/crowdsecurity/crowdsec/pkg/types"
-	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
-
-	"github.com/crowdsecurity/cs-blocklist-mirror/version"
 )
 
-var globalDecisionRegistry DecisionRegistry = DecisionRegistry{
+var globalDecisionRegistry = DecisionRegistry{
 	ActiveDecisionsByValue: make(map[string]*models.Decision),
 }
 
@@ -37,8 +35,7 @@ func listenAndServe(server *http.Server, config Config) error {
 	return server.ListenAndServe()
 }
 
-
-func runServer(config Config, ctx context.Context, g *errgroup.Group) error {
+func runServer(ctx context.Context, g *errgroup.Group, config Config) error {
 	for _, blockListCFG := range config.Blocklists {
 		f, err := getHandlerForBlockList(blockListCFG)
 		if err != nil {
@@ -54,13 +51,13 @@ func runServer(config Config, ctx context.Context, g *errgroup.Group) error {
 		http.Handle(config.Metrics.Endpoint, promhttp.Handler())
 	}
 
-	var logHandler http.Handler = nil
+	var logHandler http.Handler
 	if config.EnableAccessLogs {
 		logHandler = CombinedLoggingHandler(config.getLoggerForFile(blocklistMirrorAccessLogFilePath), http.DefaultServeMux)
 	}
 
 	server := &http.Server{
-		Addr: config.ListenURI,
+		Addr:    config.ListenURI,
 		Handler: logHandler,
 	}
 
@@ -144,7 +141,7 @@ func main() {
 	})
 
 	g.Go(func() error {
-		err := runServer(config, ctx, g)
+		err := runServer(ctx, g, config)
 		if err != nil {
 			return fmt.Errorf("blocklist server failed: %w", err)
 		}

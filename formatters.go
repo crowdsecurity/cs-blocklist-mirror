@@ -8,7 +8,7 @@ import (
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 )
 
-var FormattersByName map[string]func(w http.ResponseWriter, r *http.Request) = map[string]func(w http.ResponseWriter, r *http.Request){
+var FormattersByName = map[string]func(w http.ResponseWriter, r *http.Request){
 	"plain_text": PlainTextFormatter,
 	"mikrotik":   MikroTikFormatter,
 }
