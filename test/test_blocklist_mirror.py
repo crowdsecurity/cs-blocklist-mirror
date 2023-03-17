@@ -50,8 +50,8 @@ def test_no_lapi(bouncer, bm_cfg_factory):
     with bouncer(bm_binary, cfg) as bm:
         bm.wait_for_lines_fnmatch([
             "*connection refused*",
-            # "*terminating bouncer process*",
-            "*can't access LAPI*",
+            "*terminating bouncer process*",
+            "*stream api init failed*",
         ])
         bm.proc.wait(timeout=0.2)
         assert not bm.proc.is_running()

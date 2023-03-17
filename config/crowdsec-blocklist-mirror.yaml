@@ -9,13 +9,13 @@ crowdsec_config:
   insecure_skip_verify: false
 
 blocklists:
-  - format: plain_text # Supported formats are either of "plain_text", "mikrotik"
+  - format: plain_text # Supported formats are either "plain_text" or "mikrotik"
     endpoint: /security/blocklist
     authentication:
-      type: none # Supported types are either of "none", "ip_based", "basic"
+      type: none # Supported types are either "none", "ip_based" or "basic"
       user:
       password:
-      trusted_ips: # IP ranges, or IPs which don't require auth to access this blocklist
+      trusted_ips: # IP ranges, or IPs that don't require auth to access this blocklist
         - 127.0.0.1
         - ::1
 

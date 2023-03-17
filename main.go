@@ -2,31 +2,47 @@ package main
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"net/http"
 	"os"
 	"strings"
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	log "github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/crowdsecurity/crowdsec/pkg/apiclient"
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 	"github.com/crowdsecurity/crowdsec/pkg/types"
-	"github.com/crowdsecurity/cs-blocklist-mirror/version"
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	log "github.com/sirupsen/logrus"
+
+	"github.com/crowdsecurity/cs-blocklist-mirror/version"
 )
 
 var globalDecisionRegistry DecisionRegistry = DecisionRegistry{
 	ActiveDecisionsByValue: make(map[string]*models.Decision),
 }
 
-func runServer(config Config) {
+func listenAndServe(server *http.Server, config Config) error {
+	if config.TLS.CertFile != "" && config.TLS.KeyFile != "" {
+		log.Infof("Starting server with TLS at %s", config.ListenURI)
+		return server.ListenAndServeTLS(config.TLS.CertFile, config.TLS.KeyFile)
+	}
+	log.Infof("Starting server at %s", config.ListenURI)
+	return server.ListenAndServe()
+}
+
+
+func runServer(config Config, ctx context.Context, g *errgroup.Group) error {
 	for _, blockListCFG := range config.Blocklists {
 		f, err := getHandlerForBlockList(blockListCFG)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		http.HandleFunc(blockListCFG.Endpoint, f)
 		log.Infof("serving blocklist in format %s at endpoint %s", blockListCFG.Format, blockListCFG.Endpoint)
@@ -38,33 +54,31 @@ func runServer(config Config) {
 		http.Handle(config.Metrics.Endpoint, promhttp.Handler())
 	}
 
-	if config.TLS.CertFile != "" && config.TLS.KeyFile != "" {
-		log.Infof("Starting server with TLS at %s", config.ListenURI)
-		if config.EnableAccessLogs {
-			log.Fatal(http.ListenAndServeTLS(
-				config.ListenURI,
-				config.TLS.CertFile,
-				config.TLS.KeyFile,
-				CombinedLoggingHandler(config.getLoggerForFile(blocklistMirrorAccessLogFilePath), http.DefaultServeMux)))
-		} else {
-			log.Fatal(http.ListenAndServeTLS(
-				config.ListenURI,
-				config.TLS.CertFile,
-				config.TLS.KeyFile,
-				nil))
-		}
-	} else {
-		log.Infof("Starting server at %s", config.ListenURI)
-		if config.EnableAccessLogs {
-			log.Fatal(http.ListenAndServe(
-				config.ListenURI,
-				CombinedLoggingHandler(config.getLoggerForFile(blocklistMirrorAccessLogFilePath), http.DefaultServeMux)))
-		} else {
-			log.Fatal(http.ListenAndServe(
-				config.ListenURI,
-				nil))
-		}
+	var logHandler http.Handler = nil
+	if config.EnableAccessLogs {
+		logHandler = CombinedLoggingHandler(config.getLoggerForFile(blocklistMirrorAccessLogFilePath), http.DefaultServeMux)
 	}
+
+	server := &http.Server{
+		Addr: config.ListenURI,
+		Handler: logHandler,
+	}
+
+	g.Go(func() error {
+		err := listenAndServe(server, config)
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return err
+		}
+		return nil
+	})
+
+	<-ctx.Done()
+
+	serverCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	server.Shutdown(serverCtx) //nolint: contextcheck
+
+	return nil
 }
 
 func main() {
@@ -122,20 +136,44 @@ func main() {
 		log.Fatal(err)
 	}
 
-	go func() {
-		decisionStreamer.Run()
-		log.Fatal("can't access LAPI")
-	}()
-	go runServer(config)
+	g, ctx := errgroup.WithContext(context.Background())
 
-	for decisions := range decisionStreamer.Stream {
-		if len(decisions.New) > 0 {
-			log.Infof("received %d new decisions", len(decisions.New))
+	g.Go(func() error {
+		decisionStreamer.Run(ctx)
+		return fmt.Errorf("stream api init failed")
+	})
+
+	g.Go(func() error {
+		err := runServer(config, ctx, g)
+		if err != nil {
+			return fmt.Errorf("blocklist server failed: %w", err)
 		}
-		if len(decisions.Deleted) > 0 {
-			log.Infof("received %d expired decisions", len(decisions.Deleted))
+		return nil
+	})
+
+	g.Go(func() error {
+		for {
+			select {
+			case <-ctx.Done():
+				log.Info("terminating bouncer process")
+				return nil
+			case decisions := <-decisionStreamer.Stream:
+				if decisions == nil {
+					continue
+				}
+				if len(decisions.New) > 0 {
+					log.Infof("received %d new decisions", len(decisions.New))
+					globalDecisionRegistry.AddDecisions(decisions.New)
+				}
+				if len(decisions.Deleted) > 0 {
+					log.Infof("received %d expired decisions", len(decisions.Deleted))
+					globalDecisionRegistry.DeleteDecisions(decisions.Deleted)
+				}
+			}
 		}
-		globalDecisionRegistry.AddDecisions(decisions.New)
-		globalDecisionRegistry.DeleteDecisions(decisions.Deleted)
+	})
+
+	if err := g.Wait(); err != nil {
+		log.Fatalf("process return with error: %s", err)
 	}
 }
