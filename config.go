@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	blocklistMirrorLogFilePath       string = "crowdsec-blocklist-mirror.log"
-	blocklistMirrorAccessLogFilePath string = "crowdsec-blocklist-mirror_access.log"
+	blocklistMirrorLogFilePath       = "crowdsec-blocklist-mirror.log"
+	blocklistMirrorAccessLogFilePath = "crowdsec-blocklist-mirror_access.log"
 )
 
 type CrowdsecConfig struct {
@@ -126,7 +126,7 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	}
 
 	if !strings.HasSuffix(cfg.CrowdsecConfig.LapiURL, "/") {
-		cfg.CrowdsecConfig.LapiURL = cfg.CrowdsecConfig.LapiURL + "/"
+		cfg.CrowdsecConfig.LapiURL += "/"
 	}
 
 	if cfg.CrowdsecConfig.UpdateFrequency == "" {
