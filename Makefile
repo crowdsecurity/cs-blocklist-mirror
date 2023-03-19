@@ -1,12 +1,13 @@
-# Go parameters
 GOCMD=go
 GOBUILD=$(GOCMD) build
-GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
-GOGET=$(GOCMD) get
 
 GOOS ?= linux
 GOARCH ?= amd64
+
+BINARY_NAME=crowdsec-blocklist-mirror
+
+TARBALL_NAME=$(BINARY_NAME).tgz
 
 # Current versioning information from env
 BUILD_VERSION?="$(shell git describe --tags)"
@@ -24,29 +25,56 @@ else
 	export LD_OPTS=-ldflags "-a -v -s -w $(LD_OPTS_VARS)"
 endif
 
-PREFIX?="/"
-BINARY_NAME=crowdsec-blocklist-mirror
+.PHONY: all
+all: build
 
-RELDIR = "crowdsec-blocklist-mirror-${BUILD_VERSION}"
+# Called during release, to reuse the directory for other platforms
+.PHONY: clean-release-dir
+clean-release-dir:
+	@rm -rf $(RELDIR)
 
-all: clean build
+# Remove everything including all platform binaries and tarballs
+.PHONY: clean
+clean: clean-release-dir
+	@rm -f $(BINARY_NAME)
+	@rm -f $(TARBALL_NAME)
+	@rm -rf $(BINARY_NAME)-*	# platform binary name and leftover release dir
+	@rm -f $(BINARY_NAME)-*.tgz	# platform release file
 
-build: goversion clean
+#
+# Build binaries
+#
+
+.PHONY: binary
+binary: goversion
 	$(GOBUILD) $(LD_OPTS) -o $(BINARY_NAME)
+
+.PHONY: build
+build: goversion clean binary
+
+#
+# Unit and integration tests
+#
 
 .PHONY: test
 test:
 	@$(GOTEST) ./...
 
-clean:
-	@rm -f $(BINARY_NAME)
-	@rm -rf ${RELDIR}
-	@rm -f crowdsec-blocklist-mirror-*.tgz || ""
+.PHONY: func-tests
+func-tests: build
+	pipenv install --dev
+	pipenv run pytest -v
 
-.PHONY: release
-release: build
-	@if [ -z ${BUILD_VERSION} ] ; then BUILD_VERSION="local" ; fi
-	@if [ -d $(RELDIR) ]; then echo "$(RELDIR) already exists, clean" ;  exit 1 ; fi
+#
+# Build release tarballs
+#
+
+RELDIR = "$(BINARY_NAME)-$(BUILD_VERSION)"
+
+.PHONY: tarball
+tarball: binary
+	@if [ -z $(BUILD_VERSION) ]; then BUILD_VERSION="local" ; fi
+	@if [ -d $(RELDIR) ]; then echo "$(RELDIR) already exists, please run 'make clean' and retry" ;  exit 1 ; fi
 	@echo Building Release to dir $(RELDIR)
 	@mkdir $(RELDIR)/
 	@cp $(BINARY_NAME) $(RELDIR)/
@@ -57,11 +85,19 @@ release: build
 	@chmod +x $(RELDIR)/install.sh
 	@chmod +x $(RELDIR)/uninstall.sh
 	@chmod +x $(RELDIR)/upgrade.sh
-	@tar cvzf crowdsec-blocklist-mirror-$(GOOS)-$(GOARCH).tgz $(RELDIR)
+	@tar cvzf $(TARBALL_NAME) $(RELDIR)
 
-.PHONY: func-tests
-func-tests: build
-	pipenv install --dev
-	pipenv run pytest -v
 
+.PHONY: release
+release: clean tarball
+
+#
+# Build binaries and release tarballs for all platforms
+#
+
+.PHONY: platform-all
+platform-all: goversion clean
+	python3 .github/release.py run-build $(BINARY_NAME)
+
+# Check if go is the right version
 include mk/goversion.mk

@@ -1,69 +1,37 @@
 # .github/workflows/build-docker-image.yml
 name: build-binary-package
 
-on: 
+on:
   release:
     types: prereleased
 
+env:
+  PROGRAM_NAME: crowdsec-blocklist-mirror
+
 jobs:
-  build-binary-package:
-    name: Build and upload binary package
+  build:
+    name: Build and upload all platforms
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        static:
-          - false
-          - true
-        goos:
-          - linux
-          - freebsd
-        goarch:
-          - amd64
-          - arm64
+
     steps:
+
     - name: Set up Go 1.20.1
       uses: actions/setup-go@v3
       with:
         go-version: 1.20.1
-      id: go
-    - name: Check out code into the Go module directory
+
+    - name: Check out repository
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
-    - name: Build the binaries
-      env:
-        GOOS: ${{ matrix.goos }}
-        GOARCH: ${{ matrix.goarch }}
+    - name: Build all versions
       run: |
-        make release
-      if: ${{ !matrix.static }}
-
-    - name: Build the binaries (static)
-      env:
-        GOOS: ${{ matrix.goos }}
-        GOARCH: ${{ matrix.goarch }}
-      run: |
-        make release BUILD_STATIC=yes
-        mv crowdsec-blocklist-mirror-${{ env.GOOS }}-${{ env.GOARCH }}.tgz crowdsec-blocklist-mirror-${{ env.GOOS }}-${{ env.GOARCH }}-static.tgz
-      if: ${{ matrix.static }}
+        make platform-all
 
     - name: Upload to release
-      uses: JasonEtco/upload-to-release@master
-      with:
-        args: crowdsec-blocklist-mirror-${{ env.GOOS }}-${{ env.GOARCH }}.tgz application/x-gzip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        GOOS: ${{ matrix.goos }}
-        GOARCH: ${{ matrix.goarch }}
-      if: ${{ !matrix.static }}
-
-    - name: Upload to release (static)
-      uses: JasonEtco/upload-to-release@master
-      with:
-        args: crowdsec-blocklist-mirror-${{ env.GOOS }}-${{ env.GOARCH }}-static.tgz application/x-gzip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        GOOS: ${{ matrix.goos }}
-        GOARCH: ${{ matrix.goarch }}
-      if: ${{ matrix.static }}
+      run: |
+        tag_name="${GITHUB_REF##*/}"
+        hub release edit $(find . -name "$PROGRAM_NAME*" -printf "-a %p ") -m "" "$tag_name"
