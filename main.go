@@ -14,7 +14,7 @@ import (
 	"github.com/crowdsecurity/crowdsec/pkg/apiclient"
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 	"github.com/crowdsecurity/crowdsec/pkg/types"
-	"github.com/crowdsecurity/cs-blocklist-mirror/version"
+	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/version"
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"

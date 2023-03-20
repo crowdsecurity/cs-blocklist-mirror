@@ -2,44 +2,36 @@ GOCMD=go
 GOBUILD=$(GOCMD) build
 GOTEST=$(GOCMD) test
 
-GOOS ?= linux
-GOARCH ?= amd64
-
 BINARY_NAME=crowdsec-blocklist-mirror
-
+REPO_NAME=cs-blocklist-mirror
 TARBALL_NAME=$(BINARY_NAME).tgz
 
 # Current versioning information from env
-BUILD_VERSION?="$(shell git describe --tags)"
-BUILD_TIMESTAMP=$(shell date +%F"_"%T)
-BUILD_TAG="$(shell git rev-parse HEAD)"
+BUILD_VERSION?=$(shell git describe --tags)
+BUILD_TIMESTAMP?=$(shell date +%F"_"%T)
+BUILD_TAG?=$(shell git rev-parse HEAD)
 
 LD_OPTS_VARS=\
--X 'github.com/crowdsecurity/cs-blocklist-mirror/version.Version=$(BUILD_VERSION)' \
--X 'github.com/crowdsecurity/cs-blocklist-mirror/version.BuildDate=$(BUILD_TIMESTAMP)' \
--X 'github.com/crowdsecurity/cs-blocklist-mirror/version.Tag=$(BUILD_TAG)'
+-X 'github.com/crowdsecurity/$(REPO_NAME)/pkg/version.Version=$(BUILD_VERSION)' \
+-X 'github.com/crowdsecurity/$(REPO_NAME)/pkg/version.BuildDate=$(BUILD_TIMESTAMP)' \
+-X 'github.com/crowdsecurity/$(REPO_NAME)/pkg/version.Tag=$(BUILD_TAG)'
 
 ifdef BUILD_STATIC
-	export LD_OPTS=-ldflags "-a -v -s -w -extldflags '-static' $(LD_OPTS_VARS)" -tags netgo
+	export LD_OPTS=-ldflags "-a -s -w -extldflags '-static' $(LD_OPTS_VARS)" -tags netgo
 else
-	export LD_OPTS=-ldflags "-a -v -s -w $(LD_OPTS_VARS)"
+	export LD_OPTS=-ldflags "-a -s -w $(LD_OPTS_VARS)"
 endif
 
 .PHONY: all
 all: build
 
-# Called during release, to reuse the directory for other platforms
-.PHONY: clean-release-dir
-clean-release-dir:
-	@rm -rf $(RELDIR)
-
 # Remove everything including all platform binaries and tarballs
 .PHONY: clean
 clean: clean-release-dir
-	@rm -f $(BINARY_NAME)
-	@rm -f $(TARBALL_NAME)
-	@rm -rf $(BINARY_NAME)-*	# platform binary name and leftover release dir
-	@rm -f $(BINARY_NAME)-*.tgz	# platform release file
+	@$(RM) $(BINARY_NAME)
+	@$(RM) $(TARBALL_NAME)
+	@$(RM) -r $(BINARY_NAME)-*	# platform binary name and leftover release dir
+	@$(RM) $(BINARY_NAME)-*.tgz	# platform release file
 
 #
 # Build binaries
@@ -47,7 +39,7 @@ clean: clean-release-dir
 
 .PHONY: binary
 binary: goversion
-	$(GOBUILD) $(LD_OPTS) -o $(BINARY_NAME)
+	$(GOBUILD) $(LD_OPTS) $(BUILD_VENDOR_FLAGS) -o $(BINARY_NAME)
 
 .PHONY: build
 build: goversion clean binary
@@ -56,9 +48,13 @@ build: goversion clean binary
 # Unit and integration tests
 #
 
+.PHONY: lint
+lint:
+	golangci-lint run
+
 .PHONY: test
 test:
-	@$(GOTEST) ./...
+	@$(GOTEST) $(LD_OPTS) ./...
 
 .PHONY: func-tests
 func-tests: build
@@ -69,7 +65,12 @@ func-tests: build
 # Build release tarballs
 #
 
-RELDIR = "$(BINARY_NAME)-$(BUILD_VERSION)"
+RELDIR = $(BINARY_NAME)-$(BUILD_VERSION)
+
+# Called during release, to reuse the directory for other platforms
+.PHONY: clean-release-dir
+clean-release-dir:
+	@$(RM) -r $(RELDIR)
 
 .PHONY: tarball
 tarball: binary
@@ -86,7 +87,6 @@ tarball: binary
 	@chmod +x $(RELDIR)/uninstall.sh
 	@chmod +x $(RELDIR)/upgrade.sh
 	@tar cvzf $(TARBALL_NAME) $(RELDIR)
-
 
 .PHONY: release
 release: clean tarball
