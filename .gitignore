@@ -23,5 +23,5 @@
 
 # built binaries
 /crowdsec-blocklist-mirror
+/crowdsec-blocklist-mirror-*
 /crowdsec-blocklist-mirror.tgz
-/crowdsec-blocklist-mirror*/
