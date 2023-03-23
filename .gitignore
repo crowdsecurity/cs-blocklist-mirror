@@ -17,6 +17,12 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+
 # built binaries
 /crowdsec-blocklist-mirror
 /crowdsec-blocklist-mirror-*
