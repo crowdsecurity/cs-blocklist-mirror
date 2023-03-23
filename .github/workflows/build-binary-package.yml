@@ -1,4 +1,3 @@
-# .github/workflows/build-binary-package.yml
 name: build-binary-package
 
 on:

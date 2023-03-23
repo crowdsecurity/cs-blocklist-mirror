@@ -67,10 +67,3 @@ def bm_cfg_factory():
         cfg |= kw
         return cfg | kw
     yield closure
-
-
-@pytest.fixture(scope='session')
-def api_key_factory():
-    def closure(alphabet=string.ascii_letters + string.digits):
-        return ''.join(secrets.choice(alphabet) for i in range(32))
-    yield closure
