@@ -3,33 +3,35 @@ GOBUILD=$(GOCMD) build
 GOTEST=$(GOCMD) test
 
 BINARY_NAME=crowdsec-blocklist-mirror
-REPO_NAME=cs-blocklist-mirror
+GO_MODULE_NAME=github.com/crowdsecurity/cs-blocklist-mirror
 TARBALL_NAME=$(BINARY_NAME).tgz
 
-# Current versioning information from env
+# Versioning information can be overridden in the environment
 BUILD_VERSION?=$(shell git describe --tags)
 BUILD_TIMESTAMP?=$(shell date +%F"_"%T)
 BUILD_TAG?=$(shell git rev-parse HEAD)
 
 LD_OPTS_VARS=\
--X 'github.com/crowdsecurity/$(REPO_NAME)/pkg/version.Version=$(BUILD_VERSION)' \
--X 'github.com/crowdsecurity/$(REPO_NAME)/pkg/version.BuildDate=$(BUILD_TIMESTAMP)' \
--X 'github.com/crowdsecurity/$(REPO_NAME)/pkg/version.Tag=$(BUILD_TAG)'
+-X '$(GO_MODULE_NAME)/pkg/version.Version=$(BUILD_VERSION)' \
+-X '$(GO_MODULE_NAME)/pkg/version.BuildDate=$(BUILD_TIMESTAMP)' \
+-X '$(GO_MODULE_NAME)/pkg/version.Tag=$(BUILD_TAG)'
 
-ifdef BUILD_STATIC
-	export LD_OPTS=-ldflags "-a -s -w -extldflags '-static' $(LD_OPTS_VARS)" -tags netgo
-else
-	export LD_OPTS=-ldflags "-a -s -w $(LD_OPTS_VARS)"
-endif
-
-LD_OPTS += -trimpath
+export LD_OPTS=-ldflags "-a -s -w -extldflags '-static' $(LD_OPTS_VARS)" \
+	-trimpath -tags netgo
 
 .PHONY: all
 all: build test
 
+clean-debian:
+	@$(RM) -r debian/$(BINARY_NAME)
+	@$(RM) -r debian/files
+	@$(RM) -r debian/*.substvars
+	@$(RM) -r debian/*.debhelper
+	@$(RM) -r debian/*-stamp
+
 # Remove everything including all platform binaries and tarballs
 .PHONY: clean
-clean: clean-release-dir
+clean: clean-release-dir clean-debian
 	@$(RM) $(BINARY_NAME)
 	@$(RM) $(TARBALL_NAME)
 	@$(RM) -r $(BINARY_NAME)-*	# platform binary name and leftover release dir

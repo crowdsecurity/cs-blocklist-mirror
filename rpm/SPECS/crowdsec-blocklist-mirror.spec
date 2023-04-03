@@ -36,7 +36,7 @@ rm ${TMP}
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/bin
 install -m 755 -D %{name}  %{buildroot}%{_bindir}/%{name}
-install -m 600 -D config/%{name}.yaml %{buildroot}/etc/crowdsec/bouncers/%{name}.yaml 
+install -m 600 -D config/%{name}.yaml %{buildroot}/etc/crowdsec/bouncers/%{name}.yaml
 install -m 644 -D config/%{name}.service %{buildroot}%{_unitdir}/%{name}.service
 
 %clean
@@ -46,7 +46,7 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 /usr/bin/%{name}
 %{_unitdir}/%{name}.service
-%config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml 
+%config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml
 
 
 %post -p /bin/bash
@@ -90,7 +90,7 @@ else
 fi
 
 echo "crowdsec-blocklist-mirror has been successfully installed"
- 
+
 %changelog
 * Fri Apr 29 2022 Shivam Sandbhor <shivam@crowdsec.net>
 - First initial packaging
