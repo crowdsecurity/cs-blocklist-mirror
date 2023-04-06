@@ -25,8 +25,8 @@ all: build test
 clean-debian:
 	@$(RM) -r debian/$(BINARY_NAME)
 	@$(RM) -r debian/files
+	@$(RM) -r debian/.debhelper
 	@$(RM) -r debian/*.substvars
-	@$(RM) -r debian/*.debhelper
 	@$(RM) -r debian/*-stamp
 
 # Remove everything including all platform binaries and tarballs
