@@ -1,45 +1,28 @@
+#!/bin/sh
 
 systemctl daemon-reload
 
+BOUNCER="crowdsec-blocklist-mirror"
+CONFIG="/etc/crowdsec/bouncers/$BOUNCER.yaml"
+SERVICE="$BOUNCER.service"
 
-START=0
+helper="/usr/lib/$DPKG_MAINTSCRIPT_PACKAGE/helper.sh"
+START=1
 
-LAPI_DEFAULT_PORT="8080"
-
-if [ "$1" = "configure" ] && [ "$2" = "" ]; then
-    type cscli
-    if [ "$?" -eq "0" ] ; then
-        START=1
-        echo "cscli/crowdsec is present, generating API key"
-        unique=`date +%s`
-        API_KEY=`cscli -oraw bouncers add blocklistMirror-${unique}`
-        PORT=$(cscli config show --key "Config.API.Server.ListenURI"|cut -d ":" -f2)
-        if [ ! -z "$PORT" ]; then
-            LAPI_DEFAULT_PORT=${PORT}
-        fi
-        CROWDSEC_LAPI_URL="http://127.0.0.1:${LAPI_DEFAULT_PORT}/"
-        if [ $? -eq 1 ] ; then
-            echo "failed to create API token, service won't be started."
+if [ "$1" = "configure" ]; then
+    if $helper need-api-key "$CONFIG"; then
+        if ! $helper set-api-key "$CONFIG" "blocklistMirror"; then
             START=0
-            API_KEY="<API_KEY>"
-        else
-            echo "API Key : ${API_KEY}"
         fi
-
-        TMP=`mktemp -p /tmp/`
-        cp /etc/crowdsec/bouncers/crowdsec-blocklist-mirror.yaml ${TMP}
-        API_KEY=${API_KEY} CROWDSEC_LAPI_URL=${CROWDSEC_LAPI_URL} envsubst < ${TMP} > /etc/crowdsec/bouncers/crowdsec-blocklist-mirror.yaml
-        rm ${TMP}
     fi
-else
-    START=1
 fi
 
+systemctl --quiet is-enabled "$SERVICE" || systemctl unmask "$SERVICE" && systemctl enable "$SERVICE"
 
-if [ ${START} -eq 0 ] ; then
-    echo "no api key was generated, you can generate one on your LAPI Server by running 'cscli bouncers add <bouncer_name>' and add it to '/etc/crowdsec/bouncers/crowdsec-blocklist-mirror.yaml'"
+$helper set-local-lapi-url "$CONFIG" 'CROWDSEC_LAPI_URL'
+
+if [ "$START" -eq 0 ]; then
+    echo "no api key was generated, you can generate one on your LAPI server by running 'cscli bouncers add <bouncer_name>' and add it to '$CONFIG'" >&2
 else
-    systemctl start crowdsec-blocklist-mirror
+    systemctl start "$SERVICE"
 fi
-
-echo "crowdsec-blocklist-mirror has been sucessfully installed"

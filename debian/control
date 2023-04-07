@@ -1,6 +1,6 @@
 Source: crowdsec-blocklist-mirror
 Maintainer: Crowdsec Team <debian@crowdsec.net>
-Build-Depends: debhelper, bash
+Build-Depends: debhelper
 
 Package: crowdsec-blocklist-mirror
 Provides: crowdsec-blocklist-mirror

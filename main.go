@@ -83,6 +83,7 @@ func main() {
 	bouncerVersion := flag.Bool("version", false, "display version and exit")
 	traceMode := flag.Bool("trace", false, "set trace mode")
 	debugMode := flag.Bool("debug", false, "set debug mode")
+	testConfig := flag.Bool("t", false, "test config and exit")
 
 	flag.Parse()
 
@@ -102,8 +103,14 @@ func main() {
 
 	config, err := newConfig(bytes.NewReader(configBytes))
 	if err != nil {
-		log.Fatalf("could not parse configuration: %s", err)
+		log.Fatalf("unable to load configuration: %s", err)
 	}
+
+	if *testConfig {
+		log.Info("config is valid")
+		os.Exit(0)
+	}
+
 	if err := config.ValidateAndSetDefaults(); err != nil {
 		log.Fatal(err)
 	}
