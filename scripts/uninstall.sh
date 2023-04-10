@@ -1,18 +1,24 @@
-#!/bin/bash
+#!/bin/sh
 
-BIN_PATH_INSTALLED="/usr/local/bin/crowdsec-blocklist-mirror"
-CONFIG_DIR="/etc/crowdsec/crowdsec-blocklist-mirror/"
-LOG_FILE="/var/log/crowdsec-blocklist-mirror.log"
-SYSTEMD_PATH_FILE="/etc/systemd/system/crowdsec-blocklist-mirror.service"
+set -eu
+
+BOUNCER="crowdsec-blocklist-mirror"
+
+. ./scripts/_bouncer.sh
+
+assert_root
+
+# --------------------------------- #
 
 uninstall() {
-	systemctl stop crowdsec-blocklist-mirror
-	rm -rf "${CONFIG_DIR}"
-	rm -f "${SYSTEMD_PATH_FILE}"
-	rm -f "${BIN_PATH_INSTALLED}"
-	rm -f "${LOG_FILE}"
+    systemctl stop "$SERVICE"
+    delete_bouncer
+    rm -f "$CONFIG"
+    rm -f "$SYSTEMD_PATH_FILE"
+    rm -f "$BIN_PATH_INSTALLED"
+    rm -f "/var/log/$BOUNCER.log"
 }
 
 uninstall
-
-echo "crowdsec-blocklist-mirror uninstall successfully"
+msg succ "$BOUNCER has been successfully uninstalled"
+exit 0

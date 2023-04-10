@@ -6,5 +6,5 @@ Package: crowdsec-blocklist-mirror
 Provides: crowdsec-blocklist-mirror
 Description: Blocklist mirror of Crowdsec
 Architecture: any
-
-
+Section: admin
+Priority: optional
