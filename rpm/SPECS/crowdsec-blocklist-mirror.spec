@@ -63,7 +63,7 @@ if [ "$1" = "1" ]; then
     fi
 fi
 
-%systemd_post crowdsec-firewall-bouncer.service
+%systemd_post crowdsec-blocklist-mirror.service
 
 set_local_lapi_url 'CROWDSEC_LAPI_URL'
 
