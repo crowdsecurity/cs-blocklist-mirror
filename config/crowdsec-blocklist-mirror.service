@@ -5,7 +5,7 @@ After=syslog.target crowdsec.service
 [Service]
 Type=simple
 ExecStart=${BIN} -c ${CFG}/crowdsec-blocklist-mirror.yaml
-ExecStartPre=${BIN} -c ${CFG}/crowdsec-firewall-bouncer.yaml -t
+ExecStartPre=${BIN} -c ${CFG}/crowdsec-Blocklist-mirror.yaml -t
 Restart=always
 RestartSec=10
 
