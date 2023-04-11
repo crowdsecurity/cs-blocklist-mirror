@@ -133,6 +133,9 @@ func main() {
 			Origins:                strings.Join(config.CrowdsecConfig.OnlyIncludeDecisionsFrom, ","),
 		},
 		UserAgent:          fmt.Sprintf("crowdsec-blocklist-mirror/%s", version.VersionStr()),
+		CertPath:           config.CrowdsecConfig.CertPath,
+		KeyPath:            config.CrowdsecConfig.KeyPath,
+		CAPath:             config.CrowdsecConfig.CAPath,
 		InsecureSkipVerify: types.BoolPtr(config.CrowdsecConfig.InsecureSkipVerify),
 	}
 

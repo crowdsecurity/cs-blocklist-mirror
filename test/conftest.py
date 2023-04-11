@@ -5,14 +5,21 @@ Full integration test with a real Crowdsec running in Docker
 import contextlib
 import os
 import pathlib
-import secrets
-import string
 
 import pytest
 
 SCRIPT_DIR = pathlib.Path(os.path.dirname(os.path.realpath(__file__)))
 PROJECT_ROOT = SCRIPT_DIR.parent
 bm_binary = PROJECT_ROOT.joinpath("crowdsec-blocklist-mirror")
+bouncer_binary = bm_binary
+
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_sessionstart(session):
+    if not bouncer_binary.exists() or not os.access(bouncer_binary, os.X_OK):
+        raise RuntimeError(f"Bouncer binary not found at {bouncer_binary}. Did you build it?")
+
+    yield
 
 
 # Create a lapi container, registers a bouncer
