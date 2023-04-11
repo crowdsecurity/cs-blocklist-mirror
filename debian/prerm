@@ -1,2 +1,15 @@
-systemctl stop crowdsec-blocklist-mirror || echo "cannot stop service"
-systemctl disable crowdsec-blocklist-mirror || echo "cannot disable service"
+#!/bin/sh
+
+set -eu
+
+BOUNCER="crowdsec-blocklist-mirror"
+
+#shellcheck source=./scripts/_bouncer.sh
+. "/usr/lib/$DPKG_MAINTSCRIPT_PACKAGE/_bouncer.sh"
+
+systemctl stop "$SERVICE" || echo "cannot stop service"
+systemctl disable "$SERVICE" || echo "cannot disable service"
+
+if [ "$1" = "purge" ]; then
+    delete_bouncer
+fi

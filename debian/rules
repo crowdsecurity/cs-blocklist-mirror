@@ -1,9 +1,7 @@
 #!/usr/bin/make -f
 
-export DEB_VERSION=$(shell dpkg-parsechangelog | egrep '^Version:' | cut -f 2 -d ' ')
+export DEB_VERSION=$(shell dpkg-parsechangelog | grep -E '^Version:' | cut -f 2 -d ' ')
 export BUILD_VERSION=v${DEB_VERSION}-debian-pragmatic
-export GO111MODULE=on
-
 
 %:
 	dh $@
@@ -15,10 +13,11 @@ override_dh_auto_test:
 override_dh_auto_build:
 override_dh_auto_install:
 	make
-	mkdir -p debian/crowdsec-blocklist-mirror/var/lib/crowdsec/crowdsec-blocklist-mirror/cache/
-	mkdir -p debian/crowdsec-blocklist-mirror/usr/bin
-	cp crowdsec-blocklist-mirror  debian/crowdsec-blocklist-mirror/usr/bin
-	mkdir -p debian/crowdsec-blocklist-mirror/etc/systemd/system/
-	mkdir -p debian/crowdsec-blocklist-mirror/etc/crowdsec/bouncers/
-	BIN=/usr/bin/crowdsec-blocklist-mirror CFG=/etc/crowdsec/bouncers envsubst < config/crowdsec-blocklist-mirror.service >  debian/crowdsec-blocklist-mirror/etc/systemd/system/crowdsec-blocklist-mirror.service
-	cp config/crowdsec-blocklist-mirror.yaml debian/crowdsec-blocklist-mirror/etc/crowdsec/bouncers/
+
+	BOUNCER=crowdsec-blocklist-mirror; \
+	PKG="$$BOUNCER"; \
+	mkdir -p "debian/$$PKG/var/lib/crowdsec/$$BOUNCER/cache/"; \
+	install -D -m 0755 "$$BOUNCER" -t "debian/$$PKG/usr/bin/"; \
+	install -D -m 0600 "scripts/_bouncer.sh" -t "debian/$$PKG/usr/lib/$$PKG/"; \
+	install -D -m 0600 "config/$$BOUNCER.yaml" "debian/$$PKG/etc/crowdsec/bouncers/$$BOUNCER.yaml"; \
+	BIN="/usr/bin/$$BOUNCER" CFG="/etc/crowdsec/bouncers" envsubst '$$BIN $$CFG' < "config/$$BOUNCER.service" | install -D -m 0644 /dev/stdin "debian/$$PKG/etc/systemd/system/$$BOUNCER.service"

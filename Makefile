@@ -6,6 +6,10 @@ BINARY_NAME=crowdsec-blocklist-mirror
 GO_MODULE_NAME=github.com/crowdsecurity/cs-blocklist-mirror
 TARBALL_NAME=$(BINARY_NAME).tgz
 
+ifdef BUILD_STATIC
+$(warning WARNING: The BUILD_STATIC variable is deprecated and has no effect. Builds are static by default since v1.5.0.)
+endif
+
 # Versioning information can be overridden in the environment
 BUILD_VERSION?=$(shell git describe --tags)
 BUILD_TIMESTAMP?=$(shell date +%F"_"%T)
@@ -25,8 +29,8 @@ all: build test
 clean-debian:
 	@$(RM) -r debian/$(BINARY_NAME)
 	@$(RM) -r debian/files
+	@$(RM) -r debian/.debhelper
 	@$(RM) -r debian/*.substvars
-	@$(RM) -r debian/*.debhelper
 	@$(RM) -r debian/*-stamp
 
 # Remove everything including all platform binaries and tarballs
