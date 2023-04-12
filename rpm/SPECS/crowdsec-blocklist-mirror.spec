@@ -8,8 +8,10 @@ URL:       https://crowdsec.net
 Source0:   https://github.com/crowdsecurity/%{name}/archive/v%(echo $VERSION).tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires: git,make
+BuildRequires: make
 %{?fc33:BuildRequires: systemd-rpm-macros}
+
+Requires: gettext
 
 %define debug_package %{nil}
 
@@ -30,11 +32,10 @@ BUILD_VERSION=%{local_version} make
 %install
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/bin
-install -m 755 -D %{name}  %{buildroot}%{_bindir}/%{name}
+install -m 755 -D %{name} %{buildroot}%{_bindir}/%{name}
 install -m 600 -D config/%{name}.yaml %{buildroot}/etc/crowdsec/bouncers/%{name}.yaml
 install -m 600 -D scripts/_bouncer.sh %{buildroot}/usr/lib/%{name}/_bouncer.sh
-install -m 644 -D config/%{name}.service %{buildroot}%{_unitdir}/%{name}.service
-BIN=%{_bindir}/%{name} CFG=/etc/crowdsec/bouncers/ envsubst '$BIN $CFG' < config/%{name}.service | install -m 0644 /dev/stdin %{buildroot}%{_unitdir}/%{name}.service
+BIN=%{_bindir}/%{name} CFG=/etc/crowdsec/bouncers envsubst '$BIN $CFG' < config/%{name}.service | install -m 0644 -D /dev/stdin %{buildroot}%{_unitdir}/%{name}.service
 
 %clean
 rm -rf %{buildroot}
@@ -46,7 +47,7 @@ rm -rf %{buildroot}
 %{_unitdir}/%{name}.service
 %config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml
 
-%post -p /bin/bash
+%post -p /usr/bin/sh
 systemctl daemon-reload
 
 BOUNCER="crowdsec-blocklist-mirror"

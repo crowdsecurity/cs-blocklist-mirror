@@ -5,7 +5,7 @@ def test_no_api_key(crowdsec, bouncer, bm_cfg_factory):
     cfg = bm_cfg_factory()
     with bouncer(bm_binary, cfg) as bm:
         bm.wait_for_lines_fnmatch([
-            "*lapi_key is not specified*",
+            "*one of lapi_key or cert_path is required*",
         ])
         bm.proc.wait(timeout=0.2)
         assert not bm.proc.is_running()
@@ -14,7 +14,7 @@ def test_no_api_key(crowdsec, bouncer, bm_cfg_factory):
 
     with bouncer(bm_binary, cfg) as bm:
         bm.wait_for_lines_fnmatch([
-            "*lapi_key is not specified*",
+            "*one of lapi_key or cert_path is required*",
         ])
         bm.proc.wait(timeout=0.2)
         assert not bm.proc.is_running()
@@ -27,7 +27,7 @@ def test_no_lapi_url(bouncer, bm_cfg_factory):
 
     with bouncer(bm_binary, cfg) as bm:
         bm.wait_for_lines_fnmatch([
-            "*lapi_url is not specified*",
+            "*lapi_url is required*",
         ])
         bm.proc.wait(timeout=0.2)
         assert not bm.proc.is_running()
@@ -36,7 +36,7 @@ def test_no_lapi_url(bouncer, bm_cfg_factory):
 
     with bouncer(bm_binary, cfg) as bm:
         bm.wait_for_lines_fnmatch([
-            "*lapi_url is not specified*",
+            "*lapi_url is required*",
         ])
         bm.proc.wait(timeout=0.2)
         assert not bm.proc.is_running()

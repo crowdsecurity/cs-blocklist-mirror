@@ -24,6 +24,9 @@ type CrowdsecConfig struct {
 	LapiURL                    string   `yaml:"lapi_url"`
 	UpdateFrequency            string   `yaml:"update_frequency"`
 	InsecureSkipVerify         bool     `yaml:"insecure_skip_verify"`
+	CertPath                   string   `yaml:"cert_path"`
+	KeyPath                    string   `yaml:"key_path"`
+	CAPath                     string   `yaml:"ca_cert_path"`
 	IncludeScenariosContaining []string `yaml:"include_scenarios_containing"`
 	ExcludeScenariosContaining []string `yaml:"exclude_scenarios_containing"`
 	OnlyIncludeDecisionsFrom   []string `yaml:"only_include_decisions_from"`
@@ -118,11 +121,12 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		logrus.SetFormatter(&logrus.TextFormatter{TimestampFormat: "02-01-2006 15:04:05", FullTimestamp: true})
 	}
 
-	if cfg.CrowdsecConfig.LapiKey == "" {
-		return fmt.Errorf("lapi_key is not specified")
+	if cfg.CrowdsecConfig.LapiKey == "" && cfg.CrowdsecConfig.CertPath == "" {
+		return fmt.Errorf("one of lapi_key or cert_path is required")
 	}
+
 	if cfg.CrowdsecConfig.LapiURL == "" {
-		return fmt.Errorf("lapi_url is not specified")
+		return fmt.Errorf("lapi_url is required")
 	}
 
 	if !strings.HasSuffix(cfg.CrowdsecConfig.LapiURL, "/") {
