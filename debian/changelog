@@ -1,5 +1,5 @@
 crowdsec-blocklist-mirror (1.0.0) UNRELEASED; urgency=medium
 
   * Initial debian packaging
-  
+
  -- Shivam Sandbhor <shivam@crowdsec.net>  Fri, 29 Apr 2022 10:50:14 +0530

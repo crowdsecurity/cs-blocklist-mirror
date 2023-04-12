@@ -8,8 +8,10 @@ URL:       https://crowdsec.net
 Source0:   https://github.com/crowdsecurity/%{name}/archive/v%(echo $VERSION).tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires: git,make
+BuildRequires: make
 %{?fc33:BuildRequires: systemd-rpm-macros}
+
+Requires: gettext
 
 %define debug_package %{nil}
 
@@ -45,7 +47,7 @@ rm -rf %{buildroot}
 %{_unitdir}/%{name}.service
 %config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml
 
-%post -p /bin/bash
+%post -p /usr/bin/sh
 systemctl daemon-reload
 
 BOUNCER="crowdsec-blocklist-mirror"

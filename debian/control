@@ -1,10 +1,11 @@
 Source: crowdsec-blocklist-mirror
 Maintainer: Crowdsec Team <debian@crowdsec.net>
 Build-Depends: debhelper
+Section: admin
+Priority: optional
 
 Package: crowdsec-blocklist-mirror
 Provides: crowdsec-blocklist-mirror
+Depends: gettext-base
 Description: Blocklist mirror of Crowdsec
 Architecture: any
-Section: admin
-Priority: optional
