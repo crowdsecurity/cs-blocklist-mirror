@@ -24,14 +24,14 @@ Requires: gettext
 %global __mangle_shebangs_exclude_from /usr/bin/env
 
 %prep
-%setup -n crowdsec-blocklist-mirror-%{version}
+%setup -n %{name}-%{version}
 
 %build
 BUILD_VERSION=%{local_version} make
 
 %install
 rm -rf %{buildroot}
-mkdir -p %{buildroot}/usr/bin
+mkdir -p %{buildroot}%{_bindir}
 install -m 755 -D %{name} %{buildroot}%{_bindir}/%{name}
 install -m 600 -D config/%{name}.yaml %{buildroot}/etc/crowdsec/bouncers/%{name}.yaml
 install -m 600 -D scripts/_bouncer.sh %{buildroot}/usr/lib/%{name}/_bouncer.sh
@@ -42,7 +42,7 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root,-)
-/usr/bin/%{name}
+${_bindir}/%{name}
 /usr/lib/%{name}/_bouncer.sh
 %{_unitdir}/%{name}.service
 %config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml
@@ -50,7 +50,7 @@ rm -rf %{buildroot}
 %post -p /usr/bin/sh
 systemctl daemon-reload
 
-BOUNCER="crowdsec-blocklist-mirror"
+BOUNCER="%{name}"
 BOUNCER_PREFIX="blocklistMirror"
 
 . /usr/lib/%{name}/_bouncer.sh
@@ -64,9 +64,9 @@ if [ "$1" = "1" ]; then
     fi
 fi
 
-%systemd_post crowdsec-blocklist-mirror.service
-
 set_local_lapi_url 'CROWDSEC_LAPI_URL'
+
+%systemd_post %{name}.service
 
 if [ "$START" -eq 0 ]; then
     echo "no api key was generated, you can generate one on your LAPI Server by running 'cscli bouncers add <bouncer_name>' and add it to '/etc/crowdsec/bouncers/$BOUNCER.yaml'" >&2
@@ -83,8 +83,8 @@ echo "$BOUNCER has been successfully installed"
 * Fri Apr 29 2022 Shivam Sandbhor <shivam@crowdsec.net>
 - First initial packaging
 
-%preun -p /bin/bash
-BOUNCER="crowdsec-blocklist-mirror"
+%preun -p /usr/bin/sh
+BOUNCER="%{name}"
 . /usr/lib/%{name}/_bouncer.sh
 
 if [ "$1" = "0" ]; then
@@ -93,8 +93,8 @@ if [ "$1" = "0" ]; then
     delete_bouncer
 fi
 
-%postun -p /bin/bash
+%postun -p /usr/bin/sh
 
 if [ "$1" == "1" ] ; then
-    systemctl restart crowdsec-blocklist-mirror || echo "cannot restart service"
+    systemctl restart %{name} || echo "cannot restart service"
 fi
