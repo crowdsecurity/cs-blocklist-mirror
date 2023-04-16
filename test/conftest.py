@@ -46,7 +46,7 @@ def bouncer_with_lapi(bouncer, crowdsec, bm_cfg_factory, api_key_factory, tmp_pa
                 cfg['crowdsec_config']['lapi_url'] = f'http://localhost:{port}/'
                 cfg['crowdsec_config']['lapi_key'] = api_key
                 cfg.update(config_bouncer)
-                with bouncer(bouncer_binary, cfg) as cb:
+                with bouncer(cfg) as cb:
                     yield cb, lapi
         finally:
             pass
