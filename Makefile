@@ -26,6 +26,8 @@ export LD_OPTS=-ldflags "-a -s -w -extldflags '-static' $(LD_OPTS_VARS)" \
 .PHONY: all
 all: build test
 
+# same as "$(MAKE) -f debian/rules clean" but without the dependency on debhelper
+.PHONY: clean-debian
 clean-debian:
 	@$(RM) -r debian/$(BINARY_NAME)
 	@$(RM) -r debian/files
@@ -33,9 +35,17 @@ clean-debian:
 	@$(RM) -r debian/*.substvars
 	@$(RM) -r debian/*-stamp
 
+.PHONY: clean-rpm
+clean-rpm:
+	@$(RM) -r rpm/BUILD
+	@$(RM) -r rpm/BUILDROOT
+	@$(RM) -r rpm/RPMS
+	@$(RM) -r rpm/SOURCES/*.tar.gz
+	@$(RM) -r rpm/SRPMS
+
 # Remove everything including all platform binaries and tarballs
 .PHONY: clean
-clean: clean-release-dir clean-debian
+clean: clean-release-dir clean-debian clean-rpm
 	@$(RM) $(BINARY_NAME)
 	@$(RM) $(TARBALL_NAME)
 	@$(RM) -r $(BINARY_NAME)-*	# platform binary name and leftover release dir

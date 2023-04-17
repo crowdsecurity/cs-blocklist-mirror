@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "190e54af8ec048f79937472426a385abf1fe67238e9f476e58ad745aacb6a743"
+            "sha256": "e65edcec18ed2b16383afadef28c61453d5d27ec543b2a9a9c9e3da5fa68669d"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -284,7 +284,7 @@
         },
         "pytest-cs": {
             "git": "https://github.com/crowdsecurity/pytest-cs.git",
-            "ref": "19f52b84afe9f9ec3aa17de048307dbabc14f43f"
+            "ref": "7afc70b9ff20957a185ee53ccc8587ce398b78cc"
         },
         "pytest-datadir": {
             "hashes": [
