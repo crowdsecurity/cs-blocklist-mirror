@@ -13,7 +13,6 @@ assert_root
 
 API_KEY="<API_KEY>"
 
-
 gen_apikey() {
     if command -v cscli >/dev/null; then
         msg succ "cscli found, generating bouncer api key."
