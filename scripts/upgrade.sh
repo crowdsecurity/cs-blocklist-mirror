@@ -2,8 +2,6 @@
 
 set -eu
 
-BOUNCER="crowdsec-blocklist-mirror"
-
 . ./scripts/_bouncer.sh
 
 assert_root
