@@ -4,8 +4,6 @@ import yaml
 
 import pytest
 
-pytestmark = pytest.mark.scripts
-
 BOUNCER = "crowdsec-blocklist-mirror"
 CONFIG = f"/etc/crowdsec/bouncers/{BOUNCER}.yaml"
 
