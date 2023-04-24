@@ -1,7 +1,3 @@
-#!/usr/bin/env python
-
-from .conftest import bm_binary
-
 
 def test_tls_server(crowdsec, certs_dir, api_key_factory, bouncer, bm_cfg_factory):
     """TLS with server-only certificate"""
@@ -33,7 +29,7 @@ def test_tls_server(crowdsec, certs_dir, api_key_factory, bouncer, bm_cfg_factor
         cfg['crowdsec_config']['lapi_url'] = f'https://localhost:{port}'
         cfg['crowdsec_config']['lapi_key'] = api_key
 
-        with bouncer(bm_binary, cfg) as bm:
+        with bouncer(cfg) as bm:
             bm.wait_for_lines_fnmatch([
                 "*Using API key auth*",
                 "*auth-api: auth with api key failed*",
@@ -42,7 +38,7 @@ def test_tls_server(crowdsec, certs_dir, api_key_factory, bouncer, bm_cfg_factor
 
         cfg['crowdsec_config']['ca_cert_path'] = (certs / 'ca.crt').as_posix()
 
-        with bouncer(bm_binary, cfg) as bm:
+        with bouncer(cfg) as bm:
             bm.wait_for_lines_fnmatch([
                 "*Using API key auth*",
                 "*Starting server at 127.0.0.1:*"
@@ -78,7 +74,7 @@ def test_tls_mutual(crowdsec, certs_dir, api_key_factory, bouncer, bm_cfg_factor
         cfg['crowdsec_config']['key_path'] = (certs / 'bouncer.key').as_posix()
         cfg['crowdsec_config']['ca_cert_path'] = (certs / 'ca.crt').as_posix()
 
-        with bouncer(bm_binary, cfg) as bm:
+        with bouncer(cfg) as bm:
             bm.wait_for_lines_fnmatch([
                 "*Using CA cert*",
                 "*Using cert auth with cert*",

@@ -2,9 +2,6 @@
 
 set -eu
 
-BOUNCER="crowdsec-blocklist-mirror"
-BOUNCER_PREFIX="cs-blocklist-mirror"
-
 . ./scripts/_bouncer.sh
 
 assert_root
@@ -12,7 +9,6 @@ assert_root
 # --------------------------------- #
 
 API_KEY="<API_KEY>"
-
 
 gen_apikey() {
     if command -v cscli >/dev/null; then
@@ -41,7 +37,7 @@ install_bouncer() {
         exit 1
     fi
     if [ -e "$BIN_PATH_INSTALLED" ]; then
-        msg warn "$BIN_PATH_INSTALLED is already installed. Exiting"
+        msg err "$BIN_PATH_INSTALLED is already installed. Exiting"
         exit 1
     fi
     msg info "Installing $BOUNCER"
@@ -57,7 +53,6 @@ install_bouncer() {
 
 # --------------------------------- #
 
-set_colors
 install_bouncer
 
 systemctl enable "$SERVICE"

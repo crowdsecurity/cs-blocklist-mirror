@@ -1,32 +1,18 @@
-"""
-Full integration test with a real Crowdsec running in Docker
-"""
-
 import contextlib
-import os
-import pathlib
 
 import pytest
 
-SCRIPT_DIR = pathlib.Path(os.path.dirname(os.path.realpath(__file__)))
-PROJECT_ROOT = SCRIPT_DIR.parent
-bm_binary = PROJECT_ROOT.joinpath("crowdsec-blocklist-mirror")
-bouncer_binary = bm_binary
 
-
-@pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_sessionstart(session):
-    if not bouncer_binary.exists() or not os.access(bouncer_binary, os.X_OK):
-        raise RuntimeError(f"Bouncer binary not found at {bouncer_binary}. Did you build it?")
-
-    yield
-
-
-# Create a lapi container, registers a bouncer
-# and runs it with the updated config.
-# - Returns context manager that yields a tuple of (bouncer, lapi)
+# provide the name of the bouncer binary to test
 @pytest.fixture(scope='session')
-def bouncer_with_lapi(bouncer, crowdsec, bm_cfg_factory, api_key_factory, tmp_path_factory):
+def bouncer_under_test():
+    return 'crowdsec-blocklist-mirror'
+
+
+# Create a lapi container, register a bouncer and run it with the updated config.
+# - Return context manager that yields a tuple of (bouncer, lapi)
+@pytest.fixture(scope='session')
+def bouncer_with_lapi(bouncer, crowdsec, bm_cfg_factory, api_key_factory, tmp_path_factory, bouncer_binary):
     @contextlib.contextmanager
     def closure(config_lapi=None, config_bouncer=None, api_key=None):
         if config_bouncer is None:
@@ -48,7 +34,7 @@ def bouncer_with_lapi(bouncer, crowdsec, bm_cfg_factory, api_key_factory, tmp_pa
                 cfg['crowdsec_config']['lapi_url'] = f'http://localhost:{port}/'
                 cfg['crowdsec_config']['lapi_key'] = api_key
                 cfg.update(config_bouncer)
-                with bouncer(bm_binary, cfg) as cb:
+                with bouncer(cfg) as cb:
                     yield cb, lapi
         finally:
             pass
