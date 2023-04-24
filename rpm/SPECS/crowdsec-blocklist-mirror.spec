@@ -47,7 +47,7 @@ rm -rf %{buildroot}
 %{_unitdir}/%{name}.service
 %config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml
 
-%post -p /usr/bin/sh
+%post
 systemctl daemon-reload
 
 . /usr/lib/%{name}/_bouncer.sh
@@ -80,7 +80,7 @@ echo "$BOUNCER has been successfully installed"
 * Fri Apr 29 2022 Shivam Sandbhor <shivam@crowdsec.net>
 - First initial packaging
 
-%preun -p /usr/bin/sh
+%preun
 . /usr/lib/%{name}/_bouncer.sh
 
 if [ "$1" = "0" ]; then
@@ -89,7 +89,7 @@ if [ "$1" = "0" ]; then
     delete_bouncer
 fi
 
-%postun -p /usr/bin/sh
+%postun
 
 if [ "$1" == "1" ] ; then
     systemctl restart %{name} || echo "cannot restart service"
