@@ -1,20 +1,76 @@
-package main
+package server
 
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
-	"net/url"
-	"sort"
 	"strings"
+	"time"
 
-	"github.com/crowdsecurity/crowdsec/pkg/models"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
+
+	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/cfg"
+	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/formatters"
+	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/registry"
 )
+
+func RunServer(ctx context.Context, g *errgroup.Group, config cfg.Config) error {
+	for _, blockListCFG := range config.Blocklists {
+		f, err := getHandlerForBlockList(blockListCFG)
+		if err != nil {
+			return err
+		}
+		http.HandleFunc(blockListCFG.Endpoint, f)
+		log.Infof("serving blocklist in format %s at endpoint %s", blockListCFG.Format, blockListCFG.Endpoint)
+	}
+
+	if config.Metrics.Enabled {
+		prometheus.MustRegister(RouteHits)
+		log.Infof("Enabling metrics at endpoint '%s' ", config.Metrics.Endpoint)
+		http.Handle(config.Metrics.Endpoint, promhttp.Handler())
+	}
+
+	var logHandler http.Handler
+	if config.EnableAccessLogs {
+		logHandler = CombinedLoggingHandler(config.GetLoggerForFile(cfg.BlocklistMirrorAccessLogFilePath), http.DefaultServeMux)
+	}
+
+	server := &http.Server{
+		Addr:    config.ListenURI,
+		Handler: logHandler,
+	}
+
+	g.Go(func() error {
+		err := listenAndServe(server, config)
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return err
+		}
+		return nil
+	})
+
+	<-ctx.Done()
+
+	serverCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	server.Shutdown(serverCtx) //nolint: contextcheck
+
+	return nil
+}
+
+func listenAndServe(server *http.Server, config cfg.Config) error {
+	if config.TLS.CertFile != "" && config.TLS.KeyFile != "" {
+		log.Infof("Starting server with TLS at %s", config.ListenURI)
+		return server.ListenAndServeTLS(config.TLS.CertFile, config.TLS.KeyFile)
+	}
+	log.Infof("Starting server at %s", config.ListenURI)
+	return server.ListenAndServe()
+}
 
 var RouteHits = prometheus.NewCounterVec(
 	prometheus.CounterOpts{
@@ -30,68 +86,6 @@ var RouteHits = prometheus.NewCounterVec(
 //			Help: "Total number of times blocklist in plain_text format was requested",
 //		}),
 //	}
-var activeDecisionCount prometheus.Gauge = promauto.NewGauge(prometheus.GaugeOpts{
-	Name: "active_decision_count",
-	Help: "Total number of decisions served by any blocklist",
-})
-
-type Key int
-type DecisionRegistry struct {
-	ActiveDecisionsByValue map[string]*models.Decision
-	Key                    Key
-}
-
-func (dr *DecisionRegistry) AddDecisions(decisions []*models.Decision) {
-	for _, decision := range decisions {
-		if _, ok := dr.ActiveDecisionsByValue[*decision.Value]; !ok {
-			activeDecisionCount.Inc()
-		}
-		dr.ActiveDecisionsByValue[*decision.Value] = decision
-	}
-}
-
-func (dr *DecisionRegistry) GetActiveDecisions(filter url.Values) []*models.Decision {
-	ret := make([]*models.Decision, 0, len(dr.ActiveDecisionsByValue))
-	if !filter.Has("ipv4only") {
-		dr.GetActiveIPV6Decisions(&ret)
-	}
-	if !filter.Has("ipv6only") {
-		dr.GetActiveIPV4Decisions(&ret)
-	}
-	if !filter.Has("nosort") {
-		sort.SliceStable(ret, func(i, j int) bool {
-			return *ret[i].Value < *ret[j].Value
-		})
-	}
-	return ret
-}
-
-func (dr *DecisionRegistry) GetActiveIPV4Decisions(ret *[]*models.Decision) {
-	for _, v := range dr.ActiveDecisionsByValue {
-		if strings.Contains(*v.Value, ":") {
-			continue
-		}
-		*ret = append(*ret, v)
-	}
-}
-
-func (dr *DecisionRegistry) GetActiveIPV6Decisions(ret *[]*models.Decision) {
-	for _, v := range dr.ActiveDecisionsByValue {
-		if strings.Contains(*v.Value, ".") {
-			continue
-		}
-		*ret = append(*ret, v)
-	}
-}
-
-func (dr *DecisionRegistry) DeleteDecisions(decisions []*models.Decision) {
-	for _, decision := range decisions {
-		if _, ok := dr.ActiveDecisionsByValue[*decision.Value]; ok {
-			delete(dr.ActiveDecisionsByValue, *decision.Value)
-			activeDecisionCount.Dec()
-		}
-	}
-}
 
 func basicAuth(username, password string) string {
 	auth := username + ":" + password
@@ -145,7 +139,7 @@ func networksContainIP(networks []net.IPNet, ip string) bool {
 	return false
 }
 
-func metricsMiddleware(blockListCfg *BlockListConfig, next http.HandlerFunc) func(w http.ResponseWriter, r *http.Request) {
+func metricsMiddleware(blockListCfg *cfg.BlockListConfig, next http.HandlerFunc) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		RouteHits.WithLabelValues(
 			blockListCfg.Endpoint,
@@ -156,17 +150,17 @@ func metricsMiddleware(blockListCfg *BlockListConfig, next http.HandlerFunc) fun
 
 func decisionMiddleware(next http.HandlerFunc) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		decisions := globalDecisionRegistry.GetActiveDecisions(r.URL.Query())
+		decisions := registry.GlobalDecisionRegistry.GetActiveDecisions(r.URL.Query())
 		if len(decisions) == 0 {
 			http.Error(w, "no decisions available", http.StatusNotFound)
 			return
 		}
-		ctx := context.WithValue(r.Context(), globalDecisionRegistry.Key, decisions)
+		ctx := context.WithValue(r.Context(), registry.GlobalDecisionRegistry.Key, decisions)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 }
 
-func authMiddleware(blockListCfg *BlockListConfig, next http.HandlerFunc) func(w http.ResponseWriter, r *http.Request) {
+func authMiddleware(blockListCfg *cfg.BlockListConfig, next http.HandlerFunc) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ip, _, err := net.SplitHostPort(r.RemoteAddr)
 		if err != nil {
@@ -197,9 +191,9 @@ func authMiddleware(blockListCfg *BlockListConfig, next http.HandlerFunc) func(w
 	}
 }
 
-func getHandlerForBlockList(blockListCfg *BlockListConfig) (func(w http.ResponseWriter, r *http.Request), error) {
-	if _, ok := FormattersByName[blockListCfg.Format]; !ok {
+func getHandlerForBlockList(blockListCfg *cfg.BlockListConfig) (func(w http.ResponseWriter, r *http.Request), error) {
+	if _, ok := formatters.ByName[blockListCfg.Format]; !ok {
 		return nil, fmt.Errorf("unknown format %s", blockListCfg.Format)
 	}
-	return authMiddleware(blockListCfg, metricsMiddleware(blockListCfg, decisionMiddleware(FormattersByName[blockListCfg.Format]))), nil
+	return authMiddleware(blockListCfg, metricsMiddleware(blockListCfg, decisionMiddleware(formatters.ByName[blockListCfg.Format]))), nil
 }

@@ -1,4 +1,4 @@
-package main
+package cfg
 
 import (
 	"fmt"
@@ -7,16 +7,19 @@ import (
 	"path"
 	"strings"
 
-	"github.com/crowdsecurity/crowdsec/pkg/types"
-	"github.com/crowdsecurity/crowdsec/pkg/yamlpatch"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"gopkg.in/yaml.v2"
+
+	"github.com/crowdsecurity/crowdsec/pkg/types"
+	"github.com/crowdsecurity/crowdsec/pkg/yamlpatch"
+
+	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/formatters"
 )
 
 var (
 	blocklistMirrorLogFilePath       = "crowdsec-blocklist-mirror.log"
-	blocklistMirrorAccessLogFilePath = "crowdsec-blocklist-mirror_access.log"
+	BlocklistMirrorAccessLogFilePath = "crowdsec-blocklist-mirror_access.log"
 )
 
 type CrowdsecConfig struct {
@@ -71,7 +74,7 @@ type Config struct {
 	EnableAccessLogs bool               `yaml:"enable_access_logs"`
 }
 
-func (cfg *Config) getLoggerForFile(fileName string) io.Writer {
+func (cfg *Config) GetLoggerForFile(fileName string) io.Writer {
 	if cfg.LogMedia != "file" {
 		return os.Stdout
 	}
@@ -117,7 +120,7 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		logrus.Fatal(err.Error())
 	}
 	if cfg.LogMedia == "file" {
-		logrus.SetOutput(cfg.getLoggerForFile(blocklistMirrorLogFilePath))
+		logrus.SetOutput(cfg.GetLoggerForFile(blocklistMirrorLogFilePath))
 		logrus.SetFormatter(&logrus.TextFormatter{TimestampFormat: "02-01-2006 15:04:05", FullTimestamp: true})
 	}
 
@@ -151,7 +154,7 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	validAuthenticationTypes := []string{"basic", "ip_based", "none"}
 	alreadyUsedEndpoint := make(map[string]struct{})
 	validFormats := []string{}
-	for format := range FormattersByName {
+	for format := range formatters.ByName {
 		validFormats = append(validFormats, format)
 	}
 
@@ -175,7 +178,7 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	return nil
 }
 
-func mergedConfig(configPath string) ([]byte, error) {
+func MergedConfig(configPath string) ([]byte, error) {
 	patcher := yamlpatch.NewPatcher(configPath, ".local")
 	data, err := patcher.MergedPatchContent()
 	if err != nil {
@@ -184,7 +187,7 @@ func mergedConfig(configPath string) ([]byte, error) {
 	return data, nil
 }
 
-func newConfig(reader io.Reader) (Config, error) {
+func NewConfig(reader io.Reader) (Config, error) {
 	config := Config{}
 
 	fcontent, err := io.ReadAll(reader)
