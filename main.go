@@ -3,80 +3,23 @@ package main
 import (
 	"bytes"
 	"context"
-	"errors"
 	"flag"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
-	"time"
 
-	"github.com/crowdsecurity/crowdsec/pkg/apiclient"
-	"github.com/crowdsecurity/crowdsec/pkg/models"
-	"github.com/crowdsecurity/crowdsec/pkg/types"
-	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/version"
-	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/crowdsecurity/crowdsec/pkg/apiclient"
+	"github.com/crowdsecurity/crowdsec/pkg/types"
+	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
+
+	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/cfg"
+	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/registry"
+	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/server"
+	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/version"
 )
-
-var globalDecisionRegistry = DecisionRegistry{
-	ActiveDecisionsByValue: make(map[string]*models.Decision),
-}
-
-func listenAndServe(server *http.Server, config Config) error {
-	if config.TLS.CertFile != "" && config.TLS.KeyFile != "" {
-		log.Infof("Starting server with TLS at %s", config.ListenURI)
-		return server.ListenAndServeTLS(config.TLS.CertFile, config.TLS.KeyFile)
-	}
-	log.Infof("Starting server at %s", config.ListenURI)
-	return server.ListenAndServe()
-}
-
-func runServer(ctx context.Context, g *errgroup.Group, config Config) error {
-	for _, blockListCFG := range config.Blocklists {
-		f, err := getHandlerForBlockList(blockListCFG)
-		if err != nil {
-			return err
-		}
-		http.HandleFunc(blockListCFG.Endpoint, f)
-		log.Infof("serving blocklist in format %s at endpoint %s", blockListCFG.Format, blockListCFG.Endpoint)
-	}
-
-	if config.Metrics.Enabled {
-		prometheus.MustRegister(RouteHits)
-		log.Infof("Enabling metrics at endpoint '%s' ", config.Metrics.Endpoint)
-		http.Handle(config.Metrics.Endpoint, promhttp.Handler())
-	}
-
-	var logHandler http.Handler
-	if config.EnableAccessLogs {
-		logHandler = CombinedLoggingHandler(config.getLoggerForFile(blocklistMirrorAccessLogFilePath), http.DefaultServeMux)
-	}
-
-	server := &http.Server{
-		Addr:    config.ListenURI,
-		Handler: logHandler,
-	}
-
-	g.Go(func() error {
-		err := listenAndServe(server, config)
-		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			return err
-		}
-		return nil
-	})
-
-	<-ctx.Done()
-
-	serverCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	server.Shutdown(serverCtx) //nolint: contextcheck
-
-	return nil
-}
 
 func main() {
 	configPath := flag.String("c", "", "path to crowdsec-blocklist-mirror.yaml")
@@ -96,12 +39,12 @@ func main() {
 		log.Fatalf("configuration file is required")
 	}
 
-	configBytes, err := mergedConfig(*configPath)
+	configBytes, err := cfg.MergedConfig(*configPath)
 	if err != nil {
 		log.Fatalf("unable to read config file: %s", err)
 	}
 
-	config, err := newConfig(bytes.NewReader(configBytes))
+	config, err := cfg.NewConfig(bytes.NewReader(configBytes))
 	if err != nil {
 		log.Fatalf("unable to load configuration: %s", err)
 	}
@@ -151,7 +94,7 @@ func main() {
 	})
 
 	g.Go(func() error {
-		err := runServer(ctx, g, config)
+		err := server.RunServer(ctx, g, config)
 		if err != nil {
 			return fmt.Errorf("blocklist server failed: %w", err)
 		}
@@ -170,11 +113,11 @@ func main() {
 				}
 				if len(decisions.New) > 0 {
 					log.Infof("received %d new decisions", len(decisions.New))
-					globalDecisionRegistry.AddDecisions(decisions.New)
+					registry.GlobalDecisionRegistry.AddDecisions(decisions.New)
 				}
 				if len(decisions.Deleted) > 0 {
 					log.Infof("received %d expired decisions", len(decisions.Deleted))
-					globalDecisionRegistry.DeleteDecisions(decisions.Deleted)
+					registry.GlobalDecisionRegistry.DeleteDecisions(decisions.Deleted)
 				}
 			}
 		}

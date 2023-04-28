@@ -64,7 +64,6 @@ linters:
     # - exhaustive          # check exhaustiveness of enum switch statements
     # - exportloopref       # checks for pointers to enclosing loop variables
     # - funlen              # Tool for detection of long functions
-    # - gci                 # Gci control golang package import order and make it always deterministic.
     # - gochecknoinits      # Checks that no init functions are present in Go code
     # - gofmt               # Gofmt checks whether code was gofmt-ed. By default this tool runs with -s option to check for code simplification
     # - goheader            # Checks is file header matches to pattern
@@ -111,6 +110,7 @@ linters:
     - promlinter            # Check Prometheus metrics naming via promlint
     - errcheck              # Errcheck is a program for checking for unchecked errors in go programs. These unchecked errors can be critical bugs in some cases
     - forcetypeassert       # finds forced type assertions
+    - gci                   # Gci control golang package import order and make it always deterministic.
     - gocritic              # Provides diagnostics that check for bugs, performance and style issues.
     - godot                 # Check if comments end in a period
     - gosec                 # (gas): Inspects source code for security problems

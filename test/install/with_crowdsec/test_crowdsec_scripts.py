@@ -5,11 +5,11 @@ import yaml
 import pytest
 from pytest_cs.lib import cscli, text
 
-
 BOUNCER = "crowdsec-blocklist-mirror"
 CONFIG = f"/etc/crowdsec/bouncers/{BOUNCER}.yaml"
 
 
+@pytest.mark.systemd_debug(BOUNCER)
 @pytest.mark.dependency()
 def test_install_crowdsec(project_repo, bouncer_binary, must_be_root):
     c = pexpect.spawn(

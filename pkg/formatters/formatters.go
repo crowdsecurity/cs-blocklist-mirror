@@ -1,4 +1,4 @@
-package main
+package formatters
 
 import (
 	"fmt"
@@ -6,22 +6,24 @@ import (
 	"strings"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
+
+	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/registry"
 )
 
-var FormattersByName = map[string]func(w http.ResponseWriter, r *http.Request){
-	"plain_text": PlainTextFormatter,
-	"mikrotik":   MikroTikFormatter,
+var ByName = map[string]func(w http.ResponseWriter, r *http.Request){
+	"plain_text": PlainText,
+	"mikrotik":   MikroTik,
 }
 
-func PlainTextFormatter(w http.ResponseWriter, r *http.Request) {
-	decisions := r.Context().Value(globalDecisionRegistry.Key).([]*models.Decision)
+func PlainText(w http.ResponseWriter, r *http.Request) {
+	decisions := r.Context().Value(registry.GlobalDecisionRegistry.Key).([]*models.Decision)
 	for _, decision := range decisions {
 		fmt.Fprintf(w, "%s\n", *decision.Value)
 	}
 }
 
-func MikroTikFormatter(w http.ResponseWriter, r *http.Request) {
-	decisions := r.Context().Value(globalDecisionRegistry.Key).([]*models.Decision)
+func MikroTik(w http.ResponseWriter, r *http.Request) {
+	decisions := r.Context().Value(registry.GlobalDecisionRegistry.Key).([]*models.Decision)
 	listName := r.URL.Query().Get("listname")
 	if listName == "" {
 		listName = "CrowdSec"
