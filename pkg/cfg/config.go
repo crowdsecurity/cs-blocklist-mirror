@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"gopkg.in/yaml.v2"
+	"golang.org/x/exp/slices"
 
 	"github.com/crowdsecurity/crowdsec/pkg/types"
 	"github.com/crowdsecurity/crowdsec/pkg/yamlpatch"
@@ -163,10 +164,10 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 			return fmt.Errorf("%s endpoint used more than once", blockList.Endpoint)
 		}
 		alreadyUsedEndpoint[blockList.Endpoint] = struct{}{}
-		if !contains(validFormats, blockList.Format) {
+		if !slices.Contains(validFormats, blockList.Format) {
 			return fmt.Errorf("%s format is not supported. Supported formats are '%s'", blockList.Format, strings.Join(validFormats, ","))
 		}
-		if !contains(validAuthenticationTypes, strings.ToLower(blockList.Authentication.Type)) && blockList.Authentication.Type != "" {
+		if !slices.Contains(validAuthenticationTypes, strings.ToLower(blockList.Authentication.Type)) && blockList.Authentication.Type != "" {
 			return fmt.Errorf(
 				"%s authentication type is not supported. Supported authentication types are '%s'",
 				blockList.Authentication.Type,
@@ -201,13 +202,4 @@ func NewConfig(reader io.Reader) (Config, error) {
 	}
 
 	return config, nil
-}
-
-func contains(arr []string, item string) bool {
-	for _, i := range arr {
-		if i == item {
-			return true
-		}
-	}
-	return false
 }
