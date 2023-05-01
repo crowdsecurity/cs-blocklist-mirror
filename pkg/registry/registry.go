@@ -34,11 +34,17 @@ func (dr *DecisionRegistry) AddDecisions(decisions []*models.Decision) {
 
 func (dr *DecisionRegistry) GetActiveDecisions(filter url.Values) []*models.Decision {
 	ret := make([]*models.Decision, 0, len(dr.ActiveDecisionsByValue))
-	if !filter.Has("ipv4only") {
-		dr.GetActiveIPV6Decisions(&ret)
-	}
-	if !filter.Has("ipv6only") {
-		dr.GetActiveIPV4Decisions(&ret)
+	for _, v := range dr.ActiveDecisionsByValue {
+		if filter.Has("ipv6only") && strings.Contains(*v.Value, ".") {
+			continue
+		}
+		if filter.Has("ipv4only") && strings.Contains(*v.Value, ":") {
+			continue
+		}
+		if filter.Has("origin") && !strings.EqualFold(*v.Origin, filter.Get("origin")) {
+			continue
+		}
+		ret = append(ret, v)
 	}
 	if !filter.Has("nosort") {
 		sort.SliceStable(ret, func(i, j int) bool {
@@ -46,24 +52,6 @@ func (dr *DecisionRegistry) GetActiveDecisions(filter url.Values) []*models.Deci
 		})
 	}
 	return ret
-}
-
-func (dr *DecisionRegistry) GetActiveIPV4Decisions(ret *[]*models.Decision) {
-	for _, v := range dr.ActiveDecisionsByValue {
-		if strings.Contains(*v.Value, ":") {
-			continue
-		}
-		*ret = append(*ret, v)
-	}
-}
-
-func (dr *DecisionRegistry) GetActiveIPV6Decisions(ret *[]*models.Decision) {
-	for _, v := range dr.ActiveDecisionsByValue {
-		if strings.Contains(*v.Value, ".") {
-			continue
-		}
-		*ret = append(*ret, v)
-	}
 }
 
 func (dr *DecisionRegistry) DeleteDecisions(decisions []*models.Decision) {
