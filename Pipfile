@@ -9,4 +9,4 @@ gnureadline = "8.1.2"
 ipdb = "0.13.13"
 
 [requires]
-python_version = "3.10"
+python_version = ">=3.10"
