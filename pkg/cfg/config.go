@@ -3,24 +3,18 @@ package cfg
 import (
 	"fmt"
 	"io"
-	"os"
-	"path"
 	"strings"
 
 	"github.com/sirupsen/logrus"
-	"gopkg.in/natefinch/lumberjack.v2"
+	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v2"
 
-	"github.com/crowdsecurity/crowdsec/pkg/types"
 	"github.com/crowdsecurity/crowdsec/pkg/yamlpatch"
 
 	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/formatters"
 )
 
-var (
-	blocklistMirrorLogFilePath       = "crowdsec-blocklist-mirror.log"
-	BlocklistMirrorAccessLogFilePath = "crowdsec-blocklist-mirror_access.log"
-)
+var blocklistMirrorLogFilePath = "crowdsec-blocklist-mirror.log"
 
 type CrowdsecConfig struct {
 	LapiKey                    string   `yaml:"lapi_key"`
@@ -63,67 +57,12 @@ type Config struct {
 	ListenURI        string             `yaml:"listen_uri"`
 	TLS              TLSConfig          `yaml:"tls"`
 	Metrics          MetricConfig       `yaml:"metrics"`
-	LogLevel         logrus.Level       `yaml:"log_level"`
-	LogMedia         string             `yaml:"log_media"`
-	LogDir           string             `yaml:"log_dir"`
-	LogMaxSize       int                `yaml:"log_max_size"`
-	LogMaxAge        int                `yaml:"log_max_age"`
-	LogMaxFiles      int                `yaml:"log_max_backups"`
-	CompressLogs     *bool              `yaml:"compress_logs"`
+	Logging          LoggingConfig      `yaml:",inline"`
 	ConfigVersion    string             `yaml:"config_version"`
 	EnableAccessLogs bool               `yaml:"enable_access_logs"`
 }
 
-func (cfg *Config) GetLoggerForFile(fileName string) io.Writer {
-	if cfg.LogMedia != "file" {
-		return os.Stdout
-	}
-
-	if cfg.LogDir == "" {
-		cfg.LogDir = "/var/log/"
-	}
-	_maxsize := 40
-	if cfg.LogMaxSize != 0 {
-		_maxsize = cfg.LogMaxSize
-	}
-	_maxfiles := 3
-	if cfg.LogMaxFiles != 0 {
-		_maxfiles = cfg.LogMaxFiles
-	}
-	_maxage := 30
-	if cfg.LogMaxAge != 0 {
-		_maxage = cfg.LogMaxAge
-	}
-	_compress := true
-	if cfg.CompressLogs != nil {
-		_compress = *cfg.CompressLogs
-	}
-	logOutput := &lumberjack.Logger{
-		Filename:   path.Join(cfg.LogDir, fileName),
-		MaxSize:    _maxsize,
-		MaxBackups: _maxfiles,
-		MaxAge:     _maxage,
-		Compress:   _compress,
-	}
-	return logOutput
-}
-
 func (cfg *Config) ValidateAndSetDefaults() error {
-	if cfg.LogMedia == "" {
-		cfg.LogMedia = "stdout"
-	}
-	if cfg.LogLevel == 0 {
-		cfg.LogLevel = logrus.InfoLevel
-	}
-	if err := types.SetDefaultLoggerConfig(cfg.LogMedia, cfg.LogDir, cfg.LogLevel, cfg.LogMaxSize, cfg.LogMaxFiles, cfg.LogMaxAge,
-		cfg.CompressLogs, false); err != nil {
-		logrus.Fatal(err.Error())
-	}
-	if cfg.LogMedia == "file" {
-		logrus.SetOutput(cfg.GetLoggerForFile(blocklistMirrorLogFilePath))
-		logrus.SetFormatter(&logrus.TextFormatter{TimestampFormat: "02-01-2006 15:04:05", FullTimestamp: true})
-	}
-
 	if cfg.CrowdsecConfig.LapiKey == "" && cfg.CrowdsecConfig.CertPath == "" {
 		return fmt.Errorf("one of lapi_key or cert_path is required")
 	}
@@ -163,10 +102,10 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 			return fmt.Errorf("%s endpoint used more than once", blockList.Endpoint)
 		}
 		alreadyUsedEndpoint[blockList.Endpoint] = struct{}{}
-		if !contains(validFormats, blockList.Format) {
+		if !slices.Contains(validFormats, blockList.Format) {
 			return fmt.Errorf("%s format is not supported. Supported formats are '%s'", blockList.Format, strings.Join(validFormats, ","))
 		}
-		if !contains(validAuthenticationTypes, strings.ToLower(blockList.Authentication.Type)) && blockList.Authentication.Type != "" {
+		if !slices.Contains(validAuthenticationTypes, strings.ToLower(blockList.Authentication.Type)) && blockList.Authentication.Type != "" {
 			return fmt.Errorf(
 				"%s authentication type is not supported. Supported authentication types are '%s'",
 				blockList.Authentication.Type,
@@ -200,14 +139,9 @@ func NewConfig(reader io.Reader) (Config, error) {
 		return config, fmt.Errorf("failed to unmarshal: %w", err)
 	}
 
-	return config, nil
-}
-
-func contains(arr []string, item string) bool {
-	for _, i := range arr {
-		if i == item {
-			return true
-		}
+	if err := config.Logging.setup(blocklistMirrorLogFilePath); err != nil {
+		return config, err
 	}
-	return false
+
+	return config, nil
 }

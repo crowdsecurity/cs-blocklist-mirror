@@ -20,6 +20,8 @@ import (
 	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/registry"
 )
 
+var BlocklistMirrorAccessLogFilePath = "crowdsec-blocklist-mirror_access.log"
+
 func RunServer(ctx context.Context, g *errgroup.Group, config cfg.Config) error {
 	for _, blockListCFG := range config.Blocklists {
 		f, err := getHandlerForBlockList(blockListCFG)
@@ -38,7 +40,11 @@ func RunServer(ctx context.Context, g *errgroup.Group, config cfg.Config) error 
 
 	var logHandler http.Handler
 	if config.EnableAccessLogs {
-		logHandler = CombinedLoggingHandler(config.GetLoggerForFile(cfg.BlocklistMirrorAccessLogFilePath), http.DefaultServeMux)
+		logger, err := config.Logging.LoggerForFile(BlocklistMirrorAccessLogFilePath)
+		if err != nil {
+			return err
+		}
+		logHandler = CombinedLoggingHandler(logger, http.DefaultServeMux)
 	}
 
 	server := &http.Server{
