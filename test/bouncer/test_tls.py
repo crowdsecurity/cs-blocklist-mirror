@@ -45,7 +45,7 @@ def test_tls_server(crowdsec, certs_dir, api_key_factory, bouncer, bm_cfg_factor
             ])
 
 
-def test_tls_mutual(crowdsec, certs_dir, api_key_factory, bouncer, bm_cfg_factory):
+def test_tls_mutual(crowdsec, certs_dir, bouncer, bm_cfg_factory):
     """TLS with two-way bouncer/lapi authentication"""
 
     lapi_env = {
