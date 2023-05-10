@@ -27,12 +27,13 @@ func main() {
 	traceMode := flag.Bool("trace", false, "set trace mode")
 	debugMode := flag.Bool("debug", false, "set debug mode")
 	testConfig := flag.Bool("t", false, "test config and exit")
+	showConfig := flag.Bool("T", false, "show full config (.yaml + .yaml.local) and exit")
 
 	flag.Parse()
 
 	if *bouncerVersion {
 		fmt.Printf("%s", version.ShowStr())
-		os.Exit(0)
+		return
 	}
 
 	if configPath == nil || *configPath == "" {
@@ -44,6 +45,11 @@ func main() {
 		log.Fatalf("unable to read config file: %s", err)
 	}
 
+	if *showConfig {
+		fmt.Println(string(configBytes))
+		return
+	}
+
 	config, err := cfg.NewConfig(bytes.NewReader(configBytes))
 	if err != nil {
 		log.Fatalf("unable to load configuration: %s", err)
@@ -51,7 +57,7 @@ func main() {
 
 	if *testConfig {
 		log.Info("config is valid")
-		os.Exit(0)
+		return
 	}
 
 	if err := config.ValidateAndSetDefaults(); err != nil {
