@@ -54,7 +54,7 @@ def test_deb_install_purge(deb_package_path, bouncer_under_test, must_be_root):
         cfg = yaml.safe_load(f)
         api_key = cfg['crowdsec_config']['lapi_key']
         # the api key has been set to a random value
-        assert api_key == zxcvbn(api_key)['score'] == 4
+        assert zxcvbn(api_key)['score'] == 4
 
     with open(config+'.id') as f:
         bouncer_name = f.read().strip()
@@ -103,8 +103,7 @@ def test_deb_install_purge_yaml_local(deb_package_path, bouncer_under_test, must
     subprocess.check_call(['cscli', 'bouncers', 'add', 'testbouncer', '-k', '123456'])
 
     with open(config.with_suffix('.yaml.local'), 'w') as f:
-        f.write('crowdsec_config:')
-        f.write('    lapi_key: 123456')
+        f.write(yaml.dump({"crowdsec_config":{"lapi_key:":"123456"}}))
 
     p = subprocess.run(
         ['dpkg', '--install', deb_package_path.as_posix()],
