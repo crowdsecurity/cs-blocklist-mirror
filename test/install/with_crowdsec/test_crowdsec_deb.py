@@ -103,7 +103,7 @@ def test_deb_install_purge_yaml_local(deb_package_path, bouncer_under_test, must
     subprocess.check_call(['cscli', 'bouncers', 'add', 'testbouncer', '-k', '123456'])
 
     with open(config.with_suffix('.yaml.local'), 'w') as f:
-        f.write(yaml.dump({"crowdsec_config":{"lapi_key:":"123456"}}))
+        f.write(yaml.dump({"crowdsec_config": {"lapi_key": "123456"}}))
 
     p = subprocess.run(
         ['dpkg', '--install', deb_package_path.as_posix()],
