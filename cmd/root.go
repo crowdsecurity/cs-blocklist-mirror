@@ -95,7 +95,7 @@ func Execute() error {
 
 	g.Go(func() error {
 		decisionStreamer.Run(ctx)
-		return fmt.Errorf("stream api init failed")
+		return fmt.Errorf("bouncer stream halted")
 	})
 
 	g.Go(func() error {
