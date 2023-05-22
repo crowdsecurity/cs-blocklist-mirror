@@ -11,13 +11,13 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/crowdsecurity/crowdsec/pkg/apiclient"
-	"github.com/crowdsecurity/crowdsec/pkg/types"
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
+	"github.com/crowdsecurity/go-cs-lib/pkg/ptr"
+	"github.com/crowdsecurity/go-cs-lib/pkg/version"
 
 	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/cfg"
 	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/registry"
 	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/server"
-	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/version"
 )
 
 func Execute() error {
@@ -31,7 +31,7 @@ func Execute() error {
 	flag.Parse()
 
 	if *bouncerVersion {
-		fmt.Printf("%s", version.ShowStr())
+		fmt.Printf("%s", version.FullString())
 		return nil
 	}
 
@@ -80,11 +80,11 @@ func Execute() error {
 			ScenariosNotContaining: strings.Join(config.CrowdsecConfig.ExcludeScenariosContaining, ","),
 			Origins:                strings.Join(config.CrowdsecConfig.OnlyIncludeDecisionsFrom, ","),
 		},
-		UserAgent:          fmt.Sprintf("crowdsec-blocklist-mirror/%s", version.VersionStr()),
+		UserAgent:          fmt.Sprintf("crowdsec-blocklist-mirror/%s", version.String()),
 		CertPath:           config.CrowdsecConfig.CertPath,
 		KeyPath:            config.CrowdsecConfig.KeyPath,
 		CAPath:             config.CrowdsecConfig.CAPath,
-		InsecureSkipVerify: types.BoolPtr(config.CrowdsecConfig.InsecureSkipVerify),
+		InsecureSkipVerify: ptr.Of(config.CrowdsecConfig.InsecureSkipVerify),
 	}
 
 	if err := decisionStreamer.Init(); err != nil {
