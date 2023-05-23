@@ -3,12 +3,14 @@ package cfg
 import (
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v2"
 
+	"github.com/crowdsecurity/go-cs-lib/pkg/csstring"
 	"github.com/crowdsecurity/go-cs-lib/pkg/yamlpatch"
 
 	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/formatters"
@@ -134,7 +136,9 @@ func NewConfig(reader io.Reader) (Config, error) {
 		return config, err
 	}
 
-	err = yaml.Unmarshal(fcontent, &config)
+	configBuff := csstring.StrictExpand(string(fcontent), os.LookupEnv)
+
+	err = yaml.Unmarshal([]byte(configBuff), &config)
 	if err != nil {
 		return config, fmt.Errorf("failed to unmarshal: %w", err)
 	}
