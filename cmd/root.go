@@ -5,13 +5,17 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/crowdsecurity/crowdsec/pkg/apiclient"
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
+	"github.com/crowdsecurity/go-cs-lib/pkg/csdaemon"
 	"github.com/crowdsecurity/go-cs-lib/pkg/ptr"
 	"github.com/crowdsecurity/go-cs-lib/pkg/version"
 
@@ -19,6 +23,24 @@ import (
 	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/registry"
 	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/server"
 )
+
+func HandleSignals(ctx context.Context) error {
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGTERM, syscall.SIGINT)
+
+	select {
+	case s := <-signalChan:
+		switch s {
+		case syscall.SIGTERM:
+			return fmt.Errorf("received SIGTERM")
+		case syscall.SIGINT:
+			return fmt.Errorf("received SIGINT")
+		}
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	return nil
+}
 
 func Execute() error {
 	configPath := flag.String("c", "", "path to crowdsec-blocklist-mirror.yaml")
@@ -53,6 +75,8 @@ func Execute() error {
 	if err != nil {
 		return fmt.Errorf("unable to load configuration: %w", err)
 	}
+
+	log.Infof("crowdsec-blocklist-mirror %s", version.Version)
 
 	if *testConfig {
 		log.Info("config is valid")
@@ -104,6 +128,12 @@ func Execute() error {
 			return fmt.Errorf("blocklist server failed: %w", err)
 		}
 		return nil
+	})
+
+	csdaemon.NotifySystemd(log.StandardLogger())
+
+	g.Go(func() error {
+		return HandleSignals(ctx)
 	})
 
 	g.Go(func() error {
