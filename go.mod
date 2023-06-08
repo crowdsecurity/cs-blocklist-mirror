@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/crowdsecurity/crowdsec v1.4.6
 	github.com/crowdsecurity/go-cs-bouncer v0.0.3
-	github.com/crowdsecurity/go-cs-lib v0.0.0-20230522124854-671e895fa788
+	github.com/crowdsecurity/go-cs-lib v0.0.2
 	github.com/felixge/httpsnoop v1.0.3
 	github.com/prometheus/client_golang v1.14.0
 	github.com/sirupsen/logrus v1.9.2
@@ -20,6 +20,7 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/crowdsecurity/grokky v0.1.0 // indirect
 	github.com/go-openapi/analysis v0.21.4 // indirect
 	github.com/go-openapi/errors v0.20.3 // indirect
