@@ -70,13 +70,28 @@ def test_tls_mutual(crowdsec, certs_dir, bouncer, bm_cfg_factory):
         port = cs.probe.get_bound_port('8080')
         cfg = bm_cfg_factory()
         cfg['crowdsec_config']['lapi_url'] = f'https://localhost:{port}'
-        cfg['crowdsec_config']['cert_path'] = (certs / 'bouncer.crt').as_posix()
-        cfg['crowdsec_config']['key_path'] = (certs / 'bouncer.key').as_posix()
         cfg['crowdsec_config']['ca_cert_path'] = (certs / 'ca.crt').as_posix()
+
+        cfg['crowdsec_config']['cert_path'] = (certs / 'agent.crt').as_posix()
+        cfg['crowdsec_config']['key_path'] = (certs / 'agent.key').as_posix()
 
         with bouncer(cfg) as bm:
             bm.wait_for_lines_fnmatch([
+                "*Starting crowdsec-blocklist-mirror*",
                 "*Using CA cert*",
-                "*Using cert auth with cert*",
+                "*Using cert auth with cert * and key *",
+                "*API error: access forbidden*",
+            ])
+
+        cs.wait_for_log("*client certificate OU (?agent-ou?) doesn't match expected OU (?bouncer-ou?)*")
+
+        cfg['crowdsec_config']['cert_path'] = (certs / 'bouncer.crt').as_posix()
+        cfg['crowdsec_config']['key_path'] = (certs / 'bouncer.key').as_posix()
+
+        with bouncer(cfg) as bm:
+            bm.wait_for_lines_fnmatch([
+                "*Starting crowdsec-blocklist-mirror*",
+                "*Using CA cert*",
+                "*Using cert auth with cert * and key *",
                 "*Starting server at 127.0.0.1:*"
             ])
