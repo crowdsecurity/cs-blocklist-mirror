@@ -76,7 +76,7 @@ func Execute() error {
 		return fmt.Errorf("unable to load configuration: %w", err)
 	}
 
-	log.Infof("crowdsec-blocklist-mirror %s", version.Version)
+	log.Infof("Starting crowdsec-blocklist-mirror %s", version.Version)
 
 	if *testConfig {
 		log.Info("config is valid")
