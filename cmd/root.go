@@ -78,11 +78,6 @@ func Execute() error {
 
 	log.Infof("Starting crowdsec-blocklist-mirror %s", version.Version)
 
-	if *testConfig {
-		log.Info("config is valid")
-		return nil
-	}
-
 	if err := config.ValidateAndSetDefaults(); err != nil {
 		return err
 	}
@@ -113,6 +108,11 @@ func Execute() error {
 
 	if err := decisionStreamer.Init(); err != nil {
 		return err
+	}
+
+	if *testConfig {
+		log.Info("config is valid")
+		return nil
 	}
 
 	g, ctx := errgroup.WithContext(context.Background())
