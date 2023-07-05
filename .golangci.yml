@@ -33,6 +33,7 @@ linters:
     # DEPRECATED by golangi-lint
     #
     - deadcode          # The owner seems to have abandoned the linter.  Replaced by unused.
+    - depguard          # Go linter that checks if package imports are in a list of acceptable packages
     - exhaustivestruct  # The owner seems to have abandoned the linter. Replaced by exhaustruct.
     - golint            # Golint differs from gofmt. Gofmt reformats Go source code, whereas golint prints out style mistakes
     - ifshort           # Checks that your code uses short syntax for if-statements whenever possible
@@ -54,7 +55,6 @@ linters:
     # - containedctx        # containedctx is a linter that detects struct contained context.Context field
     # - contextcheck        # check the function whether use a non-inherited context
     # - decorder            # check declaration order and count of types, constants, variables and functions
-    # - depguard            # Go linter that checks if package imports are in a list of acceptable packages
     # - dogsled             # Checks assignments with too many blank identifiers (e.g. x, _, _, _, := f())
     # - durationcheck       # check for two durations multiplied together
     # - errchkjson          # Checks types passed to the json encoding functions. Reports unsupported types and optionally reports occations, where the check for the returned error can be omitted.
