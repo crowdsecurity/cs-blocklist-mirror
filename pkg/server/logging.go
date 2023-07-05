@@ -114,6 +114,7 @@ const lowerhex = "0123456789abcdef"
 
 func appendQuoted(buf []byte, s string) []byte {
 	var runeTmp [utf8.UTFMax]byte
+	//nolint:wastedassign
 	for width := 0; len(s) > 0; s = s[width:] {
 		r := rune(s[0])
 		width = 1
