@@ -15,9 +15,9 @@ import (
 
 	"github.com/crowdsecurity/crowdsec/pkg/apiclient"
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
-	"github.com/crowdsecurity/go-cs-lib/pkg/csdaemon"
-	"github.com/crowdsecurity/go-cs-lib/pkg/ptr"
-	"github.com/crowdsecurity/go-cs-lib/pkg/version"
+	"github.com/crowdsecurity/go-cs-lib/csdaemon"
+	"github.com/crowdsecurity/go-cs-lib/ptr"
+	"github.com/crowdsecurity/go-cs-lib/version"
 
 	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/cfg"
 	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/registry"
