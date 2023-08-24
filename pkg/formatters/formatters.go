@@ -53,13 +53,17 @@ func MikroTik(w http.ResponseWriter, r *http.Request) {
 
 func F5(w http.ResponseWriter, r *http.Request) {
 	decisions := r.Context().Value(registry.GlobalDecisionRegistry.Key).([]*models.Decision)
-	//IP, mask, wl/bl, category
 	for _, decision := range decisions {
 		switch strings.ToLower(*decision.Scope) {
 		case "ip":
+			mask := 32
+			if strings.Contains(*decision.Value, ":") {
+				mask = 64
+			}
 			fmt.Fprintf(w,
-				"%s,,bl,additional\n",
+				"%s,%d,bl,additional\n",
 				*decision.Value,
+				mask,
 			)
 		case "range":
 			sep := strings.Split(*decision.Value, "/")
