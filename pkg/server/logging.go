@@ -28,6 +28,7 @@ type responseLogger struct {
 func (l *responseLogger) Write(b []byte) (int, error) {
 	size, err := l.w.Write(b)
 	l.size += size
+
 	return size, err
 }
 
@@ -51,6 +52,7 @@ func (l *responseLogger) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 		// WriteHeader has not been called yet
 		l.status = http.StatusSwitchingProtocols
 	}
+
 	return conn, rw, err
 }
 
@@ -83,6 +85,7 @@ func (h loggingHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	url := *req.URL
 
 	h.handler.ServeHTTP(w, req)
+
 	if req.MultipartForm != nil {
 		req.MultipartForm.RemoveAll()
 	}
@@ -100,6 +103,7 @@ func (h loggingHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 func makeLogger(w http.ResponseWriter) (*responseLogger, http.ResponseWriter) {
 	logger := &responseLogger{w: w, status: http.StatusOK}
+
 	return logger, httpsnoop.Wrap(w, httpsnoop.Hooks{
 		Write: func(httpsnoop.WriteFunc) httpsnoop.WriteFunc {
 			return logger.Write
@@ -118,25 +122,31 @@ func appendQuoted(buf []byte, s string) []byte {
 	for width := 0; len(s) > 0; s = s[width:] {
 		r := rune(s[0])
 		width = 1
+
 		if r >= utf8.RuneSelf {
 			r, width = utf8.DecodeRuneInString(s)
 		}
+
 		if width == 1 && r == utf8.RuneError {
 			buf = append(buf, `\x`...)
 			buf = append(buf, lowerhex[s[0]>>4])
 			buf = append(buf, lowerhex[s[0]&0xF])
+
 			continue
 		}
+
 		if r == rune('"') || r == '\\' { // always backslashed
 			buf = append(buf, '\\')
 			buf = append(buf, byte(r))
 			continue
 		}
+
 		if strconv.IsPrint(r) {
 			n := utf8.EncodeRune(runeTmp[:], r)
 			buf = append(buf, runeTmp[:n]...)
 			continue
 		}
+
 		switch r {
 		case '\a':
 			buf = append(buf, `\a`...)
@@ -174,6 +184,7 @@ func appendQuoted(buf []byte, s string) []byte {
 			}
 		}
 	}
+
 	return buf
 }
 
@@ -182,6 +193,7 @@ func appendQuoted(buf []byte, s string) []byte {
 // status and size are used to provide the response HTTP status and size.
 func buildCommonLogLine(req *http.Request, url url.URL, ts time.Time, status int, size int) []byte {
 	username := "-"
+
 	if url.User != nil {
 		if name := url.User.Username(); name != "" {
 			username = name
@@ -201,6 +213,7 @@ func buildCommonLogLine(req *http.Request, url url.URL, ts time.Time, status int
 	if req.ProtoMajor == 2 && req.Method == "CONNECT" {
 		uri = req.Host
 	}
+
 	if uri == "" {
 		uri = url.RequestURI()
 	}
@@ -221,6 +234,7 @@ func buildCommonLogLine(req *http.Request, url url.URL, ts time.Time, status int
 	buf = append(buf, strconv.Itoa(status)...)
 	buf = append(buf, " "...)
 	buf = append(buf, strconv.Itoa(size)...)
+
 	return buf
 }
 

@@ -25,21 +25,26 @@ func PlainText(w http.ResponseWriter, r *http.Request) {
 
 func MikroTik(w http.ResponseWriter, r *http.Request) {
 	decisions := r.Context().Value(registry.GlobalDecisionRegistry.Key).([]*models.Decision)
+
 	listName := r.URL.Query().Get("listname")
 	if listName == "" {
 		listName = "CrowdSec"
 	}
+
 	if !r.URL.Query().Has("ipv6only") {
 		fmt.Fprintf(w, "/ip firewall address-list remove [find list=%s]\n", listName)
 	}
+
 	if !r.URL.Query().Has("ipv4only") {
 		fmt.Fprintf(w, "/ipv6 firewall address-list remove [find list=%s]\n", listName)
 	}
+
 	for _, decision := range decisions {
 		var ipType = "/ip"
 		if strings.Contains(*decision.Value, ":") {
 			ipType = "/ipv6"
 		}
+
 		fmt.Fprintf(w,
 			"%s firewall address-list add list=%s address=%s comment=\"%s for %s\"\n",
 			ipType,
@@ -54,16 +59,18 @@ func MikroTik(w http.ResponseWriter, r *http.Request) {
 func F5(w http.ResponseWriter, r *http.Request) {
 	decisions := r.Context().Value(registry.GlobalDecisionRegistry.Key).([]*models.Decision)
 	for _, decision := range decisions {
-		var category = *decision.Scenario
+		category := *decision.Scenario
 		if strings.Contains(*decision.Scenario, "/") {
 			category = strings.Split(*decision.Scenario, "/")[1]
 		}
+
 		switch strings.ToLower(*decision.Scope) {
 		case "ip":
 			mask := 32
 			if strings.Contains(*decision.Value, ":") {
 				mask = 64
 			}
+
 			fmt.Fprintf(w,
 				"%s,%d,bl,%s\n",
 				*decision.Value,

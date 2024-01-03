@@ -79,22 +79,26 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 
 	if cfg.CrowdsecConfig.UpdateFrequency == "" {
 		logrus.Warn("update_frequency is not provided")
+
 		cfg.CrowdsecConfig.UpdateFrequency = "10s"
 	}
 
 	if cfg.ConfigVersion == "" {
 		logrus.Warn("config version is not provided; assuming v1.0")
+
 		cfg.ConfigVersion = "v1.0"
 	}
 
 	if cfg.ListenURI == "" {
 		logrus.Warn("listen_uri is not provided ; assuming 127.0.0.1:41412")
+
 		cfg.ListenURI = "127.0.0.1:41412"
 	}
 
 	validAuthenticationTypes := []string{"basic", "ip_based", "none"}
 	alreadyUsedEndpoint := make(map[string]struct{})
 	validFormats := []string{}
+
 	for format := range formatters.ByName {
 		validFormats = append(validFormats, format)
 	}
@@ -103,10 +107,13 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		if _, ok := alreadyUsedEndpoint[blockList.Endpoint]; ok {
 			return fmt.Errorf("%s endpoint used more than once", blockList.Endpoint)
 		}
+
 		alreadyUsedEndpoint[blockList.Endpoint] = struct{}{}
+
 		if !slices.Contains(validFormats, blockList.Format) {
 			return fmt.Errorf("%s format is not supported. Supported formats are '%s'", blockList.Format, strings.Join(validFormats, ","))
 		}
+
 		if !slices.Contains(validAuthenticationTypes, strings.ToLower(blockList.Authentication.Type)) && blockList.Authentication.Type != "" {
 			return fmt.Errorf(
 				"%s authentication type is not supported. Supported authentication types are '%s'",
@@ -121,10 +128,12 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 
 func MergedConfig(configPath string) ([]byte, error) {
 	patcher := yamlpatch.NewPatcher(configPath, ".local")
+
 	data, err := patcher.MergedPatchContent()
 	if err != nil {
 		return nil, err
 	}
+
 	return data, nil
 }
 

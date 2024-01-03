@@ -13,11 +13,12 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/crowdsecurity/crowdsec/pkg/apiclient"
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
 	"github.com/crowdsecurity/go-cs-lib/csdaemon"
 	"github.com/crowdsecurity/go-cs-lib/ptr"
 	"github.com/crowdsecurity/go-cs-lib/version"
+
+	"github.com/crowdsecurity/crowdsec/pkg/apiclient"
 
 	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/cfg"
 	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/registry"
@@ -39,6 +40,7 @@ func HandleSignals(ctx context.Context) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	}
+
 	return nil
 }
 
@@ -123,10 +125,10 @@ func Execute() error {
 	})
 
 	g.Go(func() error {
-		err := server.RunServer(ctx, g, config)
-		if err != nil {
+		if err := server.RunServer(ctx, g, config); err != nil {
 			return fmt.Errorf("blocklist server failed: %w", err)
 		}
+
 		return nil
 	})
 
