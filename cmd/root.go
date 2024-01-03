@@ -13,11 +13,12 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/crowdsecurity/crowdsec/pkg/apiclient"
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
 	"github.com/crowdsecurity/go-cs-lib/csdaemon"
 	"github.com/crowdsecurity/go-cs-lib/ptr"
 	"github.com/crowdsecurity/go-cs-lib/version"
+
+	"github.com/crowdsecurity/crowdsec/pkg/apiclient"
 
 	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/cfg"
 	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/registry"

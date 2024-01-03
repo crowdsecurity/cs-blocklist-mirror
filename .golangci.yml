@@ -1,6 +1,14 @@
 # see https://github.com/golangci/golangci-lint/blob/master/.golangci.example.yml
 
 linters-settings:
+  gci:
+    sections:
+     - standard
+     - default
+     - prefix(github.com/crowdsecurity)
+     - prefix(github.com/crowdsecurity/crowdsec)
+     - prefix(github.com/crowdsecurity/cs-blocklist-mirror)
+
   gocyclo:
     min-complexity: 30
 
