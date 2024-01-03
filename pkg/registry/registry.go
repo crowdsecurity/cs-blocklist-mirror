@@ -28,29 +28,36 @@ func (dr *DecisionRegistry) AddDecisions(decisions []*models.Decision) {
 		if _, ok := dr.ActiveDecisionsByValue[*decision.Value]; !ok {
 			activeDecisionCount.Inc()
 		}
+
 		dr.ActiveDecisionsByValue[*decision.Value] = decision
 	}
 }
 
 func (dr *DecisionRegistry) GetActiveDecisions(filter url.Values) []*models.Decision {
 	ret := make([]*models.Decision, 0, len(dr.ActiveDecisionsByValue))
+
 	for _, v := range dr.ActiveDecisionsByValue {
 		if filter.Has("ipv6only") && strings.Contains(*v.Value, ".") {
 			continue
 		}
+
 		if filter.Has("ipv4only") && strings.Contains(*v.Value, ":") {
 			continue
 		}
+
 		if filter.Has("origin") && !strings.EqualFold(*v.Origin, filter.Get("origin")) {
 			continue
 		}
+
 		ret = append(ret, v)
 	}
+
 	if !filter.Has("nosort") {
 		sort.SliceStable(ret, func(i, j int) bool {
 			return *ret[i].Value < *ret[j].Value
 		})
 	}
+
 	return ret
 }
 

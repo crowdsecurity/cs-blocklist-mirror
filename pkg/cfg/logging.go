@@ -76,14 +76,17 @@ func (c *LoggingConfig) validate() error {
 	if c.LogMedia != "stdout" && c.LogMedia != "file" {
 		return fmt.Errorf("log_media should be either 'stdout' or 'file'")
 	}
+
 	return nil
 }
 
 func (c *LoggingConfig) setup(fileName string) error {
 	c.setDefaults()
+
 	if err := c.validate(); err != nil {
 		return err
 	}
+
 	log.SetLevel(*c.LogLevel)
 
 	if c.LogMedia == "stdout" {

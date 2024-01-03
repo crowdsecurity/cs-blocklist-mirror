@@ -39,6 +39,7 @@ func HandleSignals(ctx context.Context) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	}
+
 	return nil
 }
 
@@ -123,10 +124,10 @@ func Execute() error {
 	})
 
 	g.Go(func() error {
-		err := server.RunServer(ctx, g, config)
-		if err != nil {
+		if err := server.RunServer(ctx, g, config); err != nil {
 			return fmt.Errorf("blocklist server failed: %w", err)
 		}
+
 		return nil
 	})
 

@@ -28,6 +28,7 @@ func RunServer(ctx context.Context, g *errgroup.Group, config cfg.Config) error 
 		if err != nil {
 			return err
 		}
+
 		http.HandleFunc(blockListCFG.Endpoint, f)
 		log.Infof("serving blocklist in format %s at endpoint %s", blockListCFG.Format, blockListCFG.Endpoint)
 	}
@@ -39,11 +40,13 @@ func RunServer(ctx context.Context, g *errgroup.Group, config cfg.Config) error 
 	}
 
 	var logHandler http.Handler
+
 	if config.EnableAccessLogs {
 		logger, err := config.Logging.LoggerForFile(BlocklistMirrorAccessLogFilePath)
 		if err != nil {
 			return err
 		}
+
 		logHandler = CombinedLoggingHandler(logger, http.DefaultServeMux)
 	}
 
@@ -57,6 +60,7 @@ func RunServer(ctx context.Context, g *errgroup.Group, config cfg.Config) error 
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			return err
 		}
+
 		return nil
 	})
 
@@ -74,7 +78,9 @@ func listenAndServe(server *http.Server, config cfg.Config) error {
 		log.Infof("Starting server with TLS at %s", config.ListenURI)
 		return server.ListenAndServeTLS(config.TLS.CertFile, config.TLS.KeyFile)
 	}
+
 	log.Infof("Starting server at %s", config.ListenURI)
+
 	return server.ListenAndServe()
 }
 
@@ -102,12 +108,14 @@ func satisfiesBasicAuth(r *http.Request, user, password string) bool {
 	if _, ok := r.Header[http.CanonicalHeaderKey("Authorization")]; !ok {
 		return false
 	}
+
 	expectedVal := fmt.Sprintf("Basic %s", basicAuth(user, password))
 	foundVal := r.Header[http.CanonicalHeaderKey("Authorization")][0]
 	log.WithFields(log.Fields{
 		"expected": expectedVal,
 		"found":    foundVal,
 	}).Debug("checking basic auth")
+
 	return expectedVal == foundVal
 }
 
@@ -119,19 +127,24 @@ func toValidCIDR(ip string) string {
 	if strings.Contains(ip, ":") {
 		return ip + "/128"
 	}
+
 	return ip + "/32"
 }
 
 func getTrustedIPs(ips []string) ([]net.IPNet, error) {
 	trustedIPs := make([]net.IPNet, 0)
+
 	for _, ip := range ips {
 		cidr := toValidCIDR(ip)
+
 		_, ipNet, err := net.ParseCIDR(cidr)
 		if err != nil {
 			return nil, err
 		}
+
 		trustedIPs = append(trustedIPs, *ipNet)
 	}
+
 	return trustedIPs, nil
 }
 
@@ -142,6 +155,7 @@ func networksContainIP(networks []net.IPNet, ip string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -161,6 +175,7 @@ func decisionMiddleware(next http.HandlerFunc) func(w http.ResponseWriter, r *ht
 			http.Error(w, "no decisions available", http.StatusNotFound)
 			return
 		}
+
 		ctx := context.WithValue(r.Context(), registry.GlobalDecisionRegistry.Key, decisions)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
@@ -172,14 +187,18 @@ func authMiddleware(blockListCfg *cfg.BlockListConfig, next http.HandlerFunc) fu
 		if err != nil {
 			log.Errorf("error while spliting hostport for %s: %v", r.RemoteAddr, err)
 			http.Error(w, "internal error", http.StatusInternalServerError)
+
 			return
 		}
+
 		trustedIPs, err := getTrustedIPs(blockListCfg.Authentication.TrustedIPs)
 		if err != nil {
 			log.Errorf("error while parsing trusted IPs: %v", err)
 			http.Error(w, "internal error", http.StatusInternalServerError)
+
 			return
 		}
+
 		switch strings.ToLower(blockListCfg.Authentication.Type) {
 		case "ip_based":
 			if !networksContainIP(trustedIPs, ip) {
@@ -193,6 +212,7 @@ func authMiddleware(blockListCfg *cfg.BlockListConfig, next http.HandlerFunc) fu
 			}
 		case "", "none":
 		}
+
 		next.ServeHTTP(w, r)
 	}
 }
@@ -201,5 +221,6 @@ func getHandlerForBlockList(blockListCfg *cfg.BlockListConfig) (func(w http.Resp
 	if _, ok := formatters.ByName[blockListCfg.Format]; !ok {
 		return nil, fmt.Errorf("unknown format %s", blockListCfg.Format)
 	}
+
 	return authMiddleware(blockListCfg, metricsMiddleware(blockListCfg, decisionMiddleware(formatters.ByName[blockListCfg.Format]))), nil
 }
