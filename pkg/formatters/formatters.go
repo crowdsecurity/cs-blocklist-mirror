@@ -13,6 +13,7 @@ import (
 var ByName = map[string]func(w http.ResponseWriter, r *http.Request){
 	"plain_text": PlainText,
 	"mikrotik":   MikroTik,
+	"f5":         F5,
 }
 
 func PlainText(w http.ResponseWriter, r *http.Request) {
@@ -47,5 +48,37 @@ func MikroTik(w http.ResponseWriter, r *http.Request) {
 			*decision.Scenario,
 			*decision.Duration,
 		)
+	}
+}
+
+func F5(w http.ResponseWriter, r *http.Request) {
+	decisions := r.Context().Value(registry.GlobalDecisionRegistry.Key).([]*models.Decision)
+	for _, decision := range decisions {
+		var category = *decision.Scenario
+		if strings.Contains(*decision.Scenario, "/") {
+			category = strings.Split(*decision.Scenario, "/")[1]
+		}
+		switch strings.ToLower(*decision.Scope) {
+		case "ip":
+			mask := 32
+			if strings.Contains(*decision.Value, ":") {
+				mask = 64
+			}
+			fmt.Fprintf(w,
+				"%s,%d,bl,%s\n",
+				*decision.Value,
+				mask,
+				category,
+			)
+		case "range":
+			sep := strings.Split(*decision.Value, "/")
+			fmt.Fprintf(w,
+				"%s,%s,bl,%s\n",
+				sep[0],
+				sep[1],
+				category,
+			)
+		default:
+		}
 	}
 }
