@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -61,7 +62,7 @@ func RunServer(ctx context.Context, g *errgroup.Group, config cfg.Config) error 
 				return err
 			}
 			defer listener.Close()
-			if err := listenAndServe(server, listener, config); err != http.ErrServerClosed {
+			if err := listenAndServe(server, listener, config); !errors.Is(err, http.ErrServerClosed) {
 				return err
 			}
 		}
@@ -77,7 +78,7 @@ func RunServer(ctx context.Context, g *errgroup.Group, config cfg.Config) error 
 			}
 			defer listener.Close()
 
-			if err := listenAndServe(server, listener, config); err != http.ErrServerClosed {
+			if err := listenAndServe(server, listener, config); !errors.Is(err, http.ErrServerClosed) {
 				return err
 			}
 		}
