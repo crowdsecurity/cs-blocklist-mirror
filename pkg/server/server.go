@@ -194,7 +194,7 @@ func toValidCIDR(ip string) string {
 }
 
 func getTrustedIPs(ips []string) ([]net.IPNet, error) {
-	trustedIPs := make([]net.IPNet, len(ips))
+	trustedIPs := make([]net.IPNet, 0, len(ips))
 
 	for _, ip := range ips {
 		cidr := toValidCIDR(ip)
