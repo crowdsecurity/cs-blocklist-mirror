@@ -28,7 +28,7 @@ func RunServer(ctx context.Context, g *errgroup.Group, config cfg.Config) error 
 			return err
 		}
 
-		http.HandleFunc(blockListCFG.Endpoint, globalMiddlewares(config, f))
+		http.HandleFunc(blockListCFG.Endpoint, globalMiddleware(config, f))
 		log.Infof("serving blocklist in format %s at endpoint %s", blockListCFG.Format, blockListCFG.Endpoint)
 	}
 
@@ -92,7 +92,7 @@ func RunServer(ctx context.Context, g *errgroup.Group, config cfg.Config) error 
 /*
 Global middlewares are middlewares that are applied to all routes and are not specific to a blocklist.
 */
-func globalMiddlewares(config cfg.Config, next http.HandlerFunc) http.HandlerFunc {
+func globalMiddleware(config cfg.Config, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		//Parsed unix socket request
 		if r.RemoteAddr == "@" {
