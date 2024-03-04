@@ -155,9 +155,10 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	if cfg.TrustedHeader == "" {
 		log.Info("trusted_header is not provided; assuming X-Forwarded-For")
 		cfg.TrustedHeader = "X-Forwarded-For"
-		if len(cfg.ParsedTrustedProxies) == 0 {
-			log.Info("no trusted proxies provided so trusted_header is ignored")
-		}
+	}
+
+	if len(cfg.ParsedTrustedProxies) == 0 {
+		log.Info("no trusted proxies provided so trusted_header is ignored")
 	}
 
 	return nil
