@@ -54,28 +54,32 @@ func RunServer(ctx context.Context, g *errgroup.Group, config cfg.Config) error 
 	}
 
 	g.Go(func() error {
-		log.Info("listening on unix socket: ", config.ListenSocket)
-		listener, err := net.Listen("unix", config.ListenSocket)
-		if err != nil {
-			return err
-		}
-		defer listener.Close()
-		if err := listenAndServe(server, listener, config); err != http.ErrServerClosed {
-			return err
+		if config.ListenSocket != "" {
+			log.Info("listening on unix socket: ", config.ListenSocket)
+			listener, err := net.Listen("unix", config.ListenSocket)
+			if err != nil {
+				return err
+			}
+			defer listener.Close()
+			if err := listenAndServe(server, listener, config); err != http.ErrServerClosed {
+				return err
+			}
 		}
 		return nil
 	})
 
 	g.Go(func() error {
-		log.Info("listening on tcp server: ", config.ListenURI)
-		listener, err := net.Listen("tcp", config.ListenURI)
-		if err != nil {
-			return err
-		}
-		defer listener.Close()
+		if config.ListenURI != "" {
+			log.Info("listening on tcp server: ", config.ListenURI)
+			listener, err := net.Listen("tcp", config.ListenURI)
+			if err != nil {
+				return err
+			}
+			defer listener.Close()
 
-		if err := listenAndServe(server, listener, config); err != http.ErrServerClosed {
-			return err
+			if err := listenAndServe(server, listener, config); err != http.ErrServerClosed {
+				return err
+			}
 		}
 		return nil
 	})
