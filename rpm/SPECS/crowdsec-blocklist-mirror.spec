@@ -27,7 +27,7 @@ Requires: gettext
 %setup -n %{name}-%{version}
 
 %build
-BUILD_VERSION=%{local_version} make
+#BUILD_VERSION=%{local_version} make
 
 %install
 rm -rf %{buildroot}

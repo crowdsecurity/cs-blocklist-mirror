@@ -12,7 +12,7 @@ override_dh_auto_clean:
 override_dh_auto_test:
 override_dh_auto_build:
 override_dh_auto_install:
-	@make build
+#	@make build
 
 	@BOUNCER=crowdsec-blocklist-mirror; \
 	PKG="$$BOUNCER"; \
