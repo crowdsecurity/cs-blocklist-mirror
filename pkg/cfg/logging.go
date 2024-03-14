@@ -1,7 +1,7 @@
 package cfg
 
 import (
-	"fmt"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -75,7 +75,7 @@ func (c *LoggingConfig) setDefaults() {
 
 func (c *LoggingConfig) validate() error {
 	if c.LogMedia != "stdout" && c.LogMedia != "file" {
-		return fmt.Errorf("log_media should be either 'stdout' or 'file'")
+		return errors.New("log_media should be either 'stdout' or 'file'")
 	}
 
 	return nil

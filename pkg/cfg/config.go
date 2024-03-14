@@ -1,6 +1,7 @@
 package cfg
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -66,11 +67,11 @@ type Config struct {
 
 func (cfg *Config) ValidateAndSetDefaults() error {
 	if cfg.CrowdsecConfig.LapiKey == "" && cfg.CrowdsecConfig.CertPath == "" {
-		return fmt.Errorf("one of lapi_key or cert_path is required")
+		return errors.New("one of lapi_key or cert_path is required")
 	}
 
 	if cfg.CrowdsecConfig.LapiURL == "" {
-		return fmt.Errorf("lapi_url is required")
+		return errors.New("lapi_url is required")
 	}
 
 	if !strings.HasSuffix(cfg.CrowdsecConfig.LapiURL, "/") {
