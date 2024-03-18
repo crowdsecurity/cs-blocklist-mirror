@@ -138,12 +138,14 @@ func appendQuoted(buf []byte, s string) []byte {
 		if r == rune('"') || r == '\\' { // always backslashed
 			buf = append(buf, '\\')
 			buf = append(buf, byte(r))
+
 			continue
 		}
 
 		if strconv.IsPrint(r) {
 			n := utf8.EncodeRune(runeTmp[:], r)
 			buf = append(buf, runeTmp[:n]...)
+
 			continue
 		}
 
