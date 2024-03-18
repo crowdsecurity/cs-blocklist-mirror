@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -33,9 +34,9 @@ func HandleSignals(ctx context.Context) error {
 	case s := <-signalChan:
 		switch s {
 		case syscall.SIGTERM:
-			return fmt.Errorf("received SIGTERM")
+			return errors.New("received SIGTERM")
 		case os.Interrupt: // cross-platform SIGINT
-			return fmt.Errorf("received interrupt")
+			return errors.New("received interrupt")
 		}
 	case <-ctx.Done():
 		return ctx.Err()
@@ -60,7 +61,7 @@ func Execute() error {
 	}
 
 	if configPath == nil || *configPath == "" {
-		return fmt.Errorf("configuration file is required")
+		return errors.New("configuration file is required")
 	}
 
 	configBytes, err := cfg.MergedConfig(*configPath)
@@ -101,7 +102,7 @@ func Execute() error {
 			ScenariosNotContaining: strings.Join(config.CrowdsecConfig.ExcludeScenariosContaining, ","),
 			Origins:                strings.Join(config.CrowdsecConfig.OnlyIncludeDecisionsFrom, ","),
 		},
-		UserAgent:          fmt.Sprintf("crowdsec-blocklist-mirror/%s", version.String()),
+		UserAgent:          "crowdsec-blocklist-mirror/" + version.String(),
 		CertPath:           config.CrowdsecConfig.CertPath,
 		KeyPath:            config.CrowdsecConfig.KeyPath,
 		CAPath:             config.CrowdsecConfig.CAPath,
@@ -121,7 +122,7 @@ func Execute() error {
 
 	g.Go(func() error {
 		decisionStreamer.Run(ctx)
-		return fmt.Errorf("bouncer stream halted")
+		return errors.New("bouncer stream halted")
 	})
 
 	g.Go(func() error {
@@ -148,10 +149,12 @@ func Execute() error {
 				if decisions == nil {
 					continue
 				}
+
 				if len(decisions.New) > 0 {
 					log.Infof("received %d new decisions", len(decisions.New))
 					registry.GlobalDecisionRegistry.AddDecisions(decisions.New)
 				}
+
 				if len(decisions.Deleted) > 0 {
 					log.Infof("received %d expired decisions", len(decisions.Deleted))
 					registry.GlobalDecisionRegistry.DeleteDecisions(decisions.Deleted)
