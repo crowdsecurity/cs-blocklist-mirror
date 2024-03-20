@@ -30,6 +30,7 @@ type CrowdsecConfig struct {
 	IncludeScenariosContaining []string `yaml:"include_scenarios_containing"`
 	ExcludeScenariosContaining []string `yaml:"exclude_scenarios_containing"`
 	OnlyIncludeDecisionsFrom   []string `yaml:"only_include_decisions_from"`
+	Scopes                     []string `yaml:"scopes,omitempty"`
 }
 
 type BlockListConfig struct {

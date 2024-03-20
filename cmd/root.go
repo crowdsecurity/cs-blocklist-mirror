@@ -101,6 +101,7 @@ func Execute() error {
 			ScenariosContaining:    strings.Join(config.CrowdsecConfig.IncludeScenariosContaining, ","),
 			ScenariosNotContaining: strings.Join(config.CrowdsecConfig.ExcludeScenariosContaining, ","),
 			Origins:                strings.Join(config.CrowdsecConfig.OnlyIncludeDecisionsFrom, ","),
+			Scopes:                 strings.Join(config.CrowdsecConfig.Scopes, ","),
 		},
 		UserAgent:          "crowdsec-blocklist-mirror/" + version.String(),
 		CertPath:           config.CrowdsecConfig.CertPath,
