@@ -172,7 +172,7 @@ func satisfiesBasicAuth(r *http.Request, user, password string) bool {
 		return false
 	}
 
-	expectedVal := fmt.Sprintf("Basic %s", basicAuth(user, password))
+	expectedVal := "Basic " + basicAuth(user, password)
 	foundVal := r.Header[http.CanonicalHeaderKey("Authorization")][0]
 	log.WithFields(log.Fields{
 		"expected": expectedVal,
