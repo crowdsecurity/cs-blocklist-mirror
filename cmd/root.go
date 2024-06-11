@@ -134,7 +134,7 @@ func Execute() error {
 		return nil
 	})
 
-	csdaemon.NotifySystemd(log.StandardLogger())
+	csdaemon.Notify("READY=1", log.StandardLogger())
 
 	g.Go(func() error {
 		return HandleSignals(ctx)
