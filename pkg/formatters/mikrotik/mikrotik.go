@@ -13,7 +13,7 @@ import (
 )
 
 type CustomFirewallDecisionData struct {
-	IpAddress string
+	IPAddress string
 	Scenario  string
 	Duration  string
 	IsIPv6    bool
@@ -47,10 +47,11 @@ func Format(w http.ResponseWriter, r *http.Request) {
 		listName = "CrowdSec"
 	}
 	// Prepare data for the template
-	var decisionData []CustomFirewallDecisionData
+	decisionData := make([]CustomFirewallDecisionData, 0, len(decisions))
+
 	for _, decision := range decisions {
 		decisionData = append(decisionData, CustomFirewallDecisionData{
-			IpAddress: *decision.Value,
+			IPAddress: *decision.Value,
 			Scenario:  *decision.Scenario,
 			Duration:  *decision.Duration,
 			IsIPv6:    strings.Contains(*decision.Value, ":"),

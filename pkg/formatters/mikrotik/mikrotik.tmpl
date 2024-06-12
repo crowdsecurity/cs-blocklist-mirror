@@ -29,9 +29,9 @@
 
 {{- range .Decisions}}
 {{- if not .IsIPv6}}
-${{$.NameOfMikrotikFunction}} {{.IpAddress}} "{{.Scenario}}" {{.Duration}}
+${{$.NameOfMikrotikFunction}} {{.IPAddress}} "{{.Scenario}}" {{.Duration}}
 {{- else}}
-${{$.NameOfMikrotikFunction}}v6 {{.IpAddress}} "{{.Scenario}}" {{.Duration}}
+${{$.NameOfMikrotikFunction}}v6 {{.IPAddress}} "{{.Scenario}}" {{.Duration}}
 {{- end}}
 {{- end}}
 
