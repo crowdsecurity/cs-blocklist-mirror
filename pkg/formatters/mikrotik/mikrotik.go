@@ -1,8 +1,7 @@
 package mikrotik
 
 import (
-	"embed"
-	"io/fs"
+	_ "embed"
 	"net/http"
 	"strconv"
 	"strings"
@@ -28,7 +27,7 @@ type CustomMikrotikData struct {
 }
 
 //go:embed mikrotik.tmpl
-var MikrotikScriptTemplateFile embed.FS
+var MikrotikScriptTemplate string
 
 func Format(w http.ResponseWriter, r *http.Request) {
 
@@ -66,14 +65,8 @@ func Format(w http.ResponseWriter, r *http.Request) {
 		IPv4Only:               ipv4only,
 	}
 
-	MikrotikScriptTemplate, err := fs.ReadFile(MikrotikScriptTemplateFile, "mikrotik.tmpl")
-	if err != nil {
-		http.Error(w, "Error reading template: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	// Parse the template
-	parsedTemplate, err := template.New("script").Parse(string(MikrotikScriptTemplate))
+	parsedTemplate, err := template.New("script").Parse(MikrotikScriptTemplate)
 	if err != nil {
 		http.Error(w, "Error parsing template: "+err.Error(), http.StatusInternalServerError)
 		return
