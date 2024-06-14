@@ -86,7 +86,7 @@ func Format(w http.ResponseWriter, r *http.Request) {
 	script.WriteString(scriptString)
 
 	// Get the content length of the script
-	contentLength := len([]byte(script.String()))
+	contentLength := len(scriptString)
 
 	// Set the Content-Length header
 	w.Header().Set("Content-Length", strconv.Itoa(contentLength))
