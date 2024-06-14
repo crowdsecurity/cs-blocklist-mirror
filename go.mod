@@ -1,6 +1,6 @@
 module github.com/crowdsecurity/cs-blocklist-mirror
 
-go 1.21
+go 1.22
 
 require (
 	github.com/crowdsecurity/crowdsec v1.5.5
