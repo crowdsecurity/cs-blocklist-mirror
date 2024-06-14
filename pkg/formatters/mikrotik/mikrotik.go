@@ -10,13 +10,6 @@ import (
 	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/registry"
 )
 
-type CustomFirewallDecisionData struct {
-	IPAddress string
-	Scenario  string
-	Duration  string
-	IsIPv6    bool
-}
-
 type CustomMikrotikData struct {
 	ListName               string
 	Decisions              []*models.Decision
