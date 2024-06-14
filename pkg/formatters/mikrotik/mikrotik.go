@@ -1,6 +1,7 @@
 package mikrotik
 
 import (
+	"bytes"
 	_ "embed"
 	"net/http"
 	"strings"
@@ -55,11 +56,12 @@ func Format(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var buf = new(bytes.Buffer)
 	// Execute the template
-	err = parsedTemplate.Execute(w, data)
+	err = parsedTemplate.Execute(buf, data)
 	if err != nil {
-		w.Header().Del("Content-Length")
 		http.Error(w, "Error executing template "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+	w.Write(buf.Bytes())
 }
