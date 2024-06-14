@@ -1,4 +1,4 @@
-{{- if not $.IPv6Only -}}
+{{if not $.IPv6Only -}}
 :global {{$.NameOfMikrotikFunction}} do={
   :local list "{{$.ListName}}"
   :local address $1
@@ -11,7 +11,8 @@
     /ip firewall address-list add list=$list address=$address comment=$comment timeout="$timeout"
   }
 }
-{{- end}}
+{{- if not $.IPv4Only}}
+{{end}}{{end}}
 {{- if not $.IPv4Only -}}
 :global {{$.NameOfMikrotikFunction}}v6 do={
   :local list "{{$.ListName}}"
