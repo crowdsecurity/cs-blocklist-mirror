@@ -1,4 +1,4 @@
-{{- if not $.IPv6Only }}
+{{- if not $.IPv6Only -}}
 :global {{$.NameOfMikrotikFunction}} do={
   :local list "{{$.ListName}}"
   :local address $1
@@ -12,7 +12,7 @@
   }
 }
 {{- end}}
-{{- if not $.IPv4Only }}
+{{- if not $.IPv4Only -}}
 :global {{$.NameOfMikrotikFunction}}v6 do={
   :local list "{{$.ListName}}"
   :local address $1
@@ -25,15 +25,16 @@
     /ipv6 firewall address-list add list=$list address=$address comment=$comment timeout="$timeout"
   }
 }
-{{- end}}
+{{- end -}}
 
 {{- range .Decisions}}
-{{- if not .IsIPv6}}
-${{$.NameOfMikrotikFunction}} {{.IPAddress}} "{{.Scenario}}" {{.Duration}}
-{{- else}}
-${{$.NameOfMikrotikFunction}}v6 {{.IPAddress}} "{{.Scenario}}" {{.Duration}}
-{{- end}}
-{{- end}}
+{{ $ipv6Check := contains .Value ":"}}
+{{- if not $ipv6Check -}}
+${{$.NameOfMikrotikFunction}} {{.Value}} "{{.Scenario}}" {{.Duration}}
+{{- else -}}
+${{$.NameOfMikrotikFunction}}v6 {{.Value}} "{{.Scenario}}" {{.Duration}}
+{{- end }}
+{{- end }}
 
 {{- if not $.IPv6Only }}
 :set {{$.NameOfMikrotikFunction}}
