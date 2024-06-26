@@ -141,9 +141,21 @@ Generates a MikroTik Script that the device can execute to populate the specifie
 
 Example output:
 ```bash
-/ip firewall address-list add list=foo address=1.2.3.4 comment="crowdsecurity/ssh-bf" timeout=152h40m24s
-/ip firewall address-list add list=foo address=4.3.2.1 comment="crowdsecurity/postfix-spam" timeout=166h40m25s
-/ipv6 firewall address-list add list=foo address=2001:470:1:c84::17 comment="crowdsecurity/ssh-bf" timeout=165h13m42s
+:global CrowdSecBlockIP do={
+  :local list "foo"
+  :local address $1
+  :local comment $2
+  :local timeout $3
+  onerror e in={ 
+    /ip firewall address-list add list=$list address=$address comment=$comment timeout="$timeout"
+  } do={
+    /ip firewall address-list remove [ find list=$list address="$address" ]
+    /ip firewall address-list add list=$list address=$address comment=$comment timeout="$timeout"
+  }
+}
+$CrowdSecBlockIP 1.2.3.4 "crowdsecurity/ssh-bf" 152h40m24s
+$CrowdSecBlockIP 4.3.2.1 "crowdsecurity/postfix-spam" 166h40m25s
+$CrowdSecBlockIP 2001:470:1:c84::17 "crowdsecurity/ssh-bf" 165h13m42s
 ```
 
 #### Example: MikroTik import script
