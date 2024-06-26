@@ -131,16 +131,9 @@ Example:
 
 ### mikrotik
 
-If your mikrotik router does not support IPv6, then you can use the [global query parameters](#global-runtime-query-parameters) to only return IPv4 addresses.
+Generates a MikroTik Script that the device can execute to populate the specified firewall address list.
 
-Example:
-```bash
-/ip firewall address-list add list=CrowdSec address=1.2.3.4 comment="crowdsecurity/ssh-bf" timeout=152h40m24s
-/ip firewall address-list add list=CrowdSec address=4.3.2.1 comment="crowdsecurity/postfix-spam" timeout=166h40m25s
-/ipv6 firewall address-list add list=CrowdSec address=2001:470:1:c84::17 comment="crowdsecurity/ssh-bf" timeout=165h13m42s
-```
-
-#### mikrotik query parameters
+#### MikroTik query parameters
 
 | Parameter      | Description                                                              |
 |----------------|--------------------------------------------------------------------------|
@@ -151,4 +144,23 @@ Example output:
 /ip firewall address-list add list=foo address=1.2.3.4 comment="crowdsecurity/ssh-bf" timeout=152h40m24s
 /ip firewall address-list add list=foo address=4.3.2.1 comment="crowdsecurity/postfix-spam" timeout=166h40m25s
 /ipv6 firewall address-list add list=foo address=2001:470:1:c84::17 comment="crowdsecurity/ssh-bf" timeout=165h13m42s
+```
+
+#### Example: MikroTik import script
+
+Using on device [MikroTik scripting](https://help.mikrotik.com/docs/display/ROS/Scripting) following is a starting point to download and import the blocklist. Ensure to adjust the [global query parameters](#global-runtime-query-parameters) according to your needs! 
+
+```bash
+:local name "[crowdsec]"
+:local url "http://<IP>:41412/security/blocklist?ipv4only&nosort"
+:local fileName "blocklist.rsc"
+:log info "$name fetch blocklist from $url"
+/tool fetch url="$url" mode=http dst-path=$fileName
+:if ([:len [/file find name=$fileName]] > 0) do={
+    :log info "$name import;start"
+    /import file-name=$fileName
+    :log info "$name import:done"
+} else={
+    :log error "$name failed to fetch the blocklist"
+}
 ```
