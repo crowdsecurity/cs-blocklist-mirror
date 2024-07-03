@@ -42,14 +42,15 @@ func Format(w http.ResponseWriter, r *http.Request) {
 	data := CustomMikrotikData{
 		ListName:               listName,
 		Decisions:              decisions,
-		NameOfMikrotikFunction: "CrowdSecBlockIP",
+		NameOfMikrotikFunction: "CrowdSecAddIP",
 		IPv6Only:               ipv6only,
 		IPv4Only:               ipv4only,
 	}
 
 	// Parse the template
 	parsedTemplate, err := template.New("script").Funcs(template.FuncMap{
-		"contains": strings.Contains,
+		"contains":       strings.Contains,
+		"formatScenario": _formatScenario,
 	}).Parse(MikrotikScriptTemplate)
 	if err != nil {
 		http.Error(w, "Error parsing template: "+err.Error(), http.StatusInternalServerError)
@@ -64,4 +65,11 @@ func Format(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Write(buf.Bytes())
+}
+
+func _formatScenario(s string) string {
+	if idx := strings.Index(s, "/"); idx != -1 {
+		return s[idx+1:]
+	}
+	return s
 }
