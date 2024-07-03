@@ -141,21 +141,21 @@ Generates a MikroTik Script that the device can execute to populate the specifie
 
 Example output:
 ```bash
-:global CrowdSecBlockIP do={
-  :local list "foo"
-  :local address $1
-  :local comment $2
-  :local timeout $3
-  onerror e in={ 
-    /ip firewall address-list add list=$list address=$address comment=$comment timeout="$timeout"
-  } do={
-    /ip firewall address-list remove [ find list=$list address="$address" ]
-    /ip firewall address-list add list=$list address=$address comment=$comment timeout="$timeout"
-  }
+:global CrowdSecBlockIP;
+:set CrowdSecBlockIP do={
+    :local myList "foo_IMPORT";
+    /ip firewall address-list;
+    :do { add list=$myList address=$1 comment="$2" timeout=$3; } on-error={ }
 }
-$CrowdSecBlockIP 1.2.3.4 "crowdsecurity/ssh-bf" 152h40m24s
-$CrowdSecBlockIP 4.3.2.1 "crowdsecurity/postfix-spam" 166h40m25s
-$CrowdSecBlockIP 2001:470:1:c84::17 "crowdsecurity/ssh-bf" 165h13m42s
+:global "CrowdSecBlockIP_Helper";
+:set "CrowdSecBlockIP_Helper" do={
+  /ip firewall address-list
+  :do { 
+    set list="foo_DELETE" [find list="foo"];
+    set list="foo" [find list="foo_IMPORT"];
+    remove [ /ip/firewall/address-list/find where list="foo_DELETE" ];
+  } on-error={ }
+}
 ```
 
 #### Example: MikroTik import script
