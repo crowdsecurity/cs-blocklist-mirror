@@ -146,9 +146,9 @@ Example output:
 :set CrowdSecAddIP do={
     :do { /ip/firewall/address-list/add list=foo address=$1 comment="$2" timeout=$3; } on-error={ }
 }
-$CrowdSecAddIP 1.2.3.4 "crowdsecurity/ssh-bf" 152h40m24s
-$CrowdSecAddIP 4.3.2.1 "crowdsecurity/postfix-spam" 166h40m25s
-$CrowdSecAddIP 2001:470:1:c84::17 "crowdsecurity/ssh-bf" 165h13m42s
+$CrowdSecAddIP 1.2.3.4 "ssh-bf" 152h40m24s
+$CrowdSecAddIP 4.3.2.1 "postfix-spam" 166h40m25s
+$CrowdSecAddIP 2001:470:1:c84::17 "ssh-bf" 165h13m42s
 ```
 
 #### Example: MikroTik import script
