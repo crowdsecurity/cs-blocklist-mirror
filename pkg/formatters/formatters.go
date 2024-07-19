@@ -72,7 +72,6 @@ func Juniper(w http.ResponseWriter, r *http.Request) {
         case "range":
             fmt.Fprintf(w, "%s\n", *decision.Value)
         default:
-            // Handle other scopes if needed
         }
     }
 }
