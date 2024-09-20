@@ -6,7 +6,7 @@ toolchain go1.22.4
 
 require (
 	github.com/crowdsecurity/crowdsec v1.6.3
-	github.com/crowdsecurity/go-cs-bouncer v0.0.13
+	github.com/crowdsecurity/go-cs-bouncer v0.0.14
 	github.com/crowdsecurity/go-cs-lib v0.0.15
 	github.com/felixge/httpsnoop v1.0.4
 	github.com/prometheus/client_golang v1.19.1

@@ -10,8 +10,8 @@ github.com/coreos/go-systemd/v22 v22.5.0 h1:RrqgGjYQKalulkV8NGVIfkXQf6YYmOyiJKk8
 github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=
 github.com/crowdsecurity/crowdsec v1.6.3 h1:L/6iT2/Gfl9bc9DQkHJz2BbpKM3P+yW6ocCKRyF4j1g=
 github.com/crowdsecurity/crowdsec v1.6.3/go.mod h1:LrdAX9l4vgaExQbNUVnvZIu/DPwD9pSE9gBj14D4MTo=
-github.com/crowdsecurity/go-cs-bouncer v0.0.13 h1:BndYyRr7NtATbrbU9ju43kfIESfkdsq2wmIptxkyzB0=
-github.com/crowdsecurity/go-cs-bouncer v0.0.13/go.mod h1:CQrs7Al1ORcdDtY/sMv/ps1LjxFDCiM2Kvlamn3uJx0=
+github.com/crowdsecurity/go-cs-bouncer v0.0.14 h1:0hxOaa59pMT274qDzJXNxps4QfMnhSNss+oUn36HTpw=
+github.com/crowdsecurity/go-cs-bouncer v0.0.14/go.mod h1:4nSF37v7i98idHM6cw1o0V0XgiY25EjTLfFFXvqg6OA=
 github.com/crowdsecurity/go-cs-lib v0.0.15 h1:zNWqOPVLHgKUstlr6clom9d66S0eIIW66jQG3Y7FEvo=
 github.com/crowdsecurity/go-cs-lib v0.0.15/go.mod h1:ePyQyJBxp1W/1bq4YpVAilnLSz7HkzmtI7TRhX187EU=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
