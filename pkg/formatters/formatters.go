@@ -15,6 +15,7 @@ var ByName = map[string]func(w http.ResponseWriter, r *http.Request){
 	"plain_text": PlainText,
 	"mikrotik":   mikrotik.Format,
 	"f5":         F5,
+	"juniper":    Juniper,
 }
 
 func PlainText(w http.ResponseWriter, r *http.Request) {
@@ -53,6 +54,23 @@ func F5(w http.ResponseWriter, r *http.Request) {
 				sep[1],
 				category,
 			)
+		default:
+		}
+	}
+}
+
+func Juniper(w http.ResponseWriter, r *http.Request) {
+	decisions := r.Context().Value(registry.GlobalDecisionRegistry.Key).([]*models.Decision)
+	for _, decision := range decisions {
+		switch strings.ToLower(*decision.Scope) {
+		case "ip":
+			mask := "/32"
+			if strings.Contains(*decision.Value, ":") {
+				mask = "/128"
+			}
+			fmt.Fprintf(w, "%s%s\n", *decision.Value, mask)
+		case "range":
+			fmt.Fprintf(w, "%s\n", *decision.Value)
 		default:
 		}
 	}
