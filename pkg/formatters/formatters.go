@@ -60,18 +60,18 @@ func F5(w http.ResponseWriter, r *http.Request) {
 }
 
 func Juniper(w http.ResponseWriter, r *http.Request) {
-    decisions := r.Context().Value(registry.GlobalDecisionRegistry.Key).([]*models.Decision)
-    for _, decision := range decisions {
-        switch strings.ToLower(*decision.Scope) {
-        case "ip":
-            mask := "/32"
-            if strings.Contains(*decision.Value, ":") {
-                mask = "/128"
-            }
-            fmt.Fprintf(w, "%s%s\n", *decision.Value, mask)
-        case "range":
-            fmt.Fprintf(w, "%s\n", *decision.Value)
-        default:
-        }
-    }
+	decisions := r.Context().Value(registry.GlobalDecisionRegistry.Key).([]*models.Decision)
+	for _, decision := range decisions {
+		switch strings.ToLower(*decision.Scope) {
+		case "ip":
+			mask := "/32"
+			if strings.Contains(*decision.Value, ":") {
+				mask = "/128"
+			}
+			fmt.Fprintf(w, "%s%s\n", *decision.Value, mask)
+		case "range":
+			fmt.Fprintf(w, "%s\n", *decision.Value)
+		default:
+		}
+	}
 }
