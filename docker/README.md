@@ -16,7 +16,7 @@ crowdsec_config:
   insecure_skip_verify: false
 
 blocklists:
-  - format: plain_text # Supported formats are either of "plain_text", "mikrotik"
+  - format: plain_text # Supported formats are either of "plain_text", "mikrotik", "juniper"
     endpoint: /security/blocklist
     authentication:
       type: none # Supported types are either of "none", "ip_based", "basic"
@@ -175,4 +175,74 @@ Using on device [MikroTik scripting](https://help.mikrotik.com/docs/display/ROS/
 } else={
     :log error "$name failed to fetch the blocklist"
 }
+```
+
+### Juniper SRX
+
+Generates a .txt file with all IP addresses (single host and subnets) in the CIDR notation format supported by the Juniper Networks SRX firewall platform.
+
+Example:
+```text
+1.2.3.4/32
+4.3.2.1/32
+```
+
+#### SRX Dynamic Address configuration sample
+
+Using the blocklist on a Juniper SRX requires that the published url ends in .txt. This can be acieved by altering the endpoint config in `cfg.yaml` as follows:
+
+Sample `cfg.yaml`
+```yaml
+####
+blocklists:
+  - format: plain_text # Supported formats are either of "plain_text", "mikrotik", "juniper
+    endpoint: /security/blocklist.txt #Modify to .txt for juniper formatter.
+    authentication:
+      type: none # Supported types are either of "none", "ip_based", "basic"
+      user:
+      password:
+      trusted_ips: # IP ranges, or IPs which don't require auth to access this blocklist
+        - 127.0.0.1
+        - ::1
+####
+```
+
+This can then be configured on the SRX firewall as follows:
+
+Sample SRX config:
+```test
+user@srx> show configuration security dynamic-address | display set
+
+set security dynamic-address feed-server crowdsec url http://192.168.1.2:41412
+set security dynamic-address feed-server crowdsec update-interval 30
+set security dynamic-address feed-server crowdsec feed-name crowdsec path /security/blocklist.txt
+set security dynamic-address address-name crowdsec-blocklist profile feed-name crowdsec
+```
+Further information here: https://www.juniper.net/documentation/us/en/software/junos/cli-reference/topics/ref/statement/dynamic-address.html
+
+A successful configuration should return a similar result when queried:
+
+```text
+user@srx> show security dynamic-address summary
+
+
+Dynamic-address session scan status            : Disable
+Hold-interval for dynamic-address session scan : 10 seconds
+
+
+  Server Name                 : crowdsec
+    Hostname/IP               : http://192.168.1.2:41412
+    Update interval           : 30
+    Hold   interval           : 86400
+    TLS Profile Name          : ---
+    User        Name          : ---
+
+
+    Feed Name                             : crowdsec
+        Mapped dynamic address name       : crowdsec-blocklist
+        URL                               : http://192.168.1.2:41412/security/blocklist.txt
+        Feed update interval              : 30       Feed hold interval :86400
+        Total update                      : 16310
+        Total IPv4 entries                : 16240
+        Total IPv6 entries                : 0
 ```
