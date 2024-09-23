@@ -7,7 +7,7 @@ WORKDIR /go/src/cs-blocklist-mirror
 RUN apk add --update --no-cache make git
 COPY . .
 
-RUN make build
+RUN make build DOCKER_BUILD=1
 
 FROM alpine:latest
 COPY --from=build /go/src/cs-blocklist-mirror/crowdsec-blocklist-mirror /usr/local/bin/crowdsec-blocklist-mirror
