@@ -4,10 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"strings"
 
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
 
@@ -56,14 +57,18 @@ type TLSConfig struct {
 }
 
 type Config struct {
-	CrowdsecConfig   CrowdsecConfig     `yaml:"crowdsec_config"`
-	Blocklists       []*BlockListConfig `yaml:"blocklists"`
-	ListenURI        string             `yaml:"listen_uri"`
-	TLS              TLSConfig          `yaml:"tls"`
-	Metrics          MetricConfig       `yaml:"metrics"`
-	Logging          LoggingConfig      `yaml:",inline"`
-	ConfigVersion    string             `yaml:"config_version"`
-	EnableAccessLogs bool               `yaml:"enable_access_logs"`
+	CrowdsecConfig       CrowdsecConfig     `yaml:"crowdsec_config"`
+	Blocklists           []*BlockListConfig `yaml:"blocklists"`
+	ListenURI            string             `yaml:"listen_uri"`
+	ListenSocket         string             `yaml:"listen_socket"`
+	TrustedProxies       []string           `yaml:"trusted_proxies"`
+	ParsedTrustedProxies []*net.IPNet       `yaml:"-"`
+	TrustedHeader        string             `yaml:"trusted_header"`
+	TLS                  TLSConfig          `yaml:"tls"`
+	Metrics              MetricConfig       `yaml:"metrics"`
+	Logging              LoggingConfig      `yaml:",inline"`
+	ConfigVersion        string             `yaml:"config_version"`
+	EnableAccessLogs     bool               `yaml:"enable_access_logs"`
 }
 
 func (cfg *Config) ValidateAndSetDefaults() error {
@@ -80,19 +85,19 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	}
 
 	if cfg.CrowdsecConfig.UpdateFrequency == "" {
-		logrus.Warn("update_frequency is not provided")
+		log.Warn("update_frequency is not provided")
 
 		cfg.CrowdsecConfig.UpdateFrequency = "10s"
 	}
 
 	if cfg.ConfigVersion == "" {
-		logrus.Warn("config version is not provided; assuming v1.0")
+		log.Warn("config version is not provided; assuming v1.0")
 
 		cfg.ConfigVersion = "v1.0"
 	}
 
-	if cfg.ListenURI == "" {
-		logrus.Warn("listen_uri is not provided ; assuming 127.0.0.1:41412")
+	if cfg.ListenURI == "" && cfg.ListenSocket == "" {
+		log.Warn("listen_uri is not provided ; assuming 127.0.0.1:41412")
 
 		cfg.ListenURI = "127.0.0.1:41412"
 	}
@@ -125,7 +130,48 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		}
 	}
 
+	cfg.ParsedTrustedProxies = make([]*net.IPNet, 0, len(cfg.TrustedProxies))
+	for _, ip := range cfg.TrustedProxies {
+		if !strings.Contains(ip, "/") {
+			log.Debug("no CIDR provided attempting to add /32 or /128; ", ip)
+			parsedIP := parseIP(ip)
+			if parsedIP == nil {
+				return fmt.Errorf("invalid IP address: %s", ip)
+			}
+			switch len(parsedIP) {
+			case net.IPv4len:
+				ip += "/32"
+			case net.IPv6len:
+				ip += "/128"
+			}
+			log.Debug("added CIDR to IP: ", ip)
+		}
+		_, ipNet, err := net.ParseCIDR(ip)
+		if err != nil {
+			return fmt.Errorf("invalid IP address: %s", ip)
+		}
+		log.Info("adding trusted proxy: ", ip)
+		cfg.ParsedTrustedProxies = append(cfg.ParsedTrustedProxies, ipNet)
+	}
+
+	if cfg.TrustedHeader == "" {
+		log.Info("trusted_header is not provided; assuming X-Forwarded-For")
+		cfg.TrustedHeader = "X-Forwarded-For"
+	}
+
+	if len(cfg.ParsedTrustedProxies) == 0 {
+		log.Info("no trusted proxies provided so trusted_header is ignored")
+	}
+
 	return nil
+}
+
+func parseIP(ip string) net.IP {
+	parsedIP := net.ParseIP(ip)
+	if ipv4 := parsedIP.To4(); ipv4 != nil {
+		return ipv4
+	}
+	return parsedIP
 }
 
 func MergedConfig(configPath string) ([]byte, error) {
