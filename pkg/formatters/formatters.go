@@ -7,52 +7,21 @@ import (
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 
+	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/formatters/mikrotik"
 	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/registry"
 )
 
 var ByName = map[string]func(w http.ResponseWriter, r *http.Request){
 	"plain_text": PlainText,
-	"mikrotik":   MikroTik,
+	"mikrotik":   mikrotik.Format,
 	"f5":         F5,
+	"juniper":    Juniper,
 }
 
 func PlainText(w http.ResponseWriter, r *http.Request) {
 	decisions := r.Context().Value(registry.GlobalDecisionRegistry.Key).([]*models.Decision)
 	for _, decision := range decisions {
 		fmt.Fprintf(w, "%s\n", *decision.Value)
-	}
-}
-
-func MikroTik(w http.ResponseWriter, r *http.Request) {
-	decisions := r.Context().Value(registry.GlobalDecisionRegistry.Key).([]*models.Decision)
-
-	listName := r.URL.Query().Get("listname")
-	if listName == "" {
-		listName = "CrowdSec"
-	}
-
-	if !r.URL.Query().Has("ipv6only") {
-		fmt.Fprintf(w, "/ip firewall address-list remove [find list=%s]\n", listName)
-	}
-
-	if !r.URL.Query().Has("ipv4only") {
-		fmt.Fprintf(w, "/ipv6 firewall address-list remove [find list=%s]\n", listName)
-	}
-
-	for _, decision := range decisions {
-		var ipType = "/ip"
-		if strings.Contains(*decision.Value, ":") {
-			ipType = "/ipv6"
-		}
-
-		fmt.Fprintf(w,
-			"%s firewall address-list add list=%s address=%s comment=\"%s for %s\"\n",
-			ipType,
-			listName,
-			*decision.Value,
-			*decision.Scenario,
-			*decision.Duration,
-		)
 	}
 }
 
@@ -85,6 +54,23 @@ func F5(w http.ResponseWriter, r *http.Request) {
 				sep[1],
 				category,
 			)
+		default:
+		}
+	}
+}
+
+func Juniper(w http.ResponseWriter, r *http.Request) {
+	decisions := r.Context().Value(registry.GlobalDecisionRegistry.Key).([]*models.Decision)
+	for _, decision := range decisions {
+		switch strings.ToLower(*decision.Scope) {
+		case "ip":
+			mask := "/32"
+			if strings.Contains(*decision.Value, ":") {
+				mask = "/128"
+			}
+			fmt.Fprintf(w, "%s%s\n", *decision.Value, mask)
+		case "range":
+			fmt.Fprintf(w, "%s\n", *decision.Value)
 		default:
 		}
 	}
