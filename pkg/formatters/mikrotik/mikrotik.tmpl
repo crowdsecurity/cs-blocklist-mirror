@@ -5,7 +5,6 @@
     :do { /ip/firewall/address-list/add list={{$.ListName}} address=$1 comment="$2" timeout=$3; } on-error={ }
 }
 {{ end -}}
-
 {{ if not $.IPv4Only }}
 /ipv6/firewall/address-list/remove [ find where list="{{$.ListName}}" ];
 :global {{$.NameOfMikrotikFunction}}v6;
@@ -20,7 +19,7 @@
 ${{$.NameOfMikrotikFunction}} "{{.Value}}" "{{.Scenario}}" "{{.Duration}}"
 {{- else -}}
 ${{$.NameOfMikrotikFunction}}v6 "{{.Value}}" "{{.Scenario}}" "{{.Duration}}"
-{{- end -}}
+{{- end }}
 {{ end -}}
 
 {{ if not $.IPv6Only }}
