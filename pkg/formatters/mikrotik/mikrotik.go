@@ -42,7 +42,7 @@ func Format(w http.ResponseWriter, r *http.Request) {
 	data := CustomMikrotikData{
 		ListName:               listName,
 		Decisions:              decisions,
-		NameOfMikrotikFunction: "CrowdSecBlockIP",
+		NameOfMikrotikFunction: "CrowdSecAddIP",
 		IPv6Only:               ipv6only,
 		IPv4Only:               ipv4only,
 	}
