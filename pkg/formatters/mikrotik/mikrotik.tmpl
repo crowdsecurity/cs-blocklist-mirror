@@ -16,11 +16,10 @@
 
 {{- range .Decisions -}}
 {{ $ipv6Check := contains .Value ":" }}
-{{ $scenario := .Scenario | formatScenario }}
 {{- if not $ipv6Check -}}
-${{$.NameOfMikrotikFunction}} "{{.Value}}" "{{$scenario}}" "{{.Duration}}"
+${{$.NameOfMikrotikFunction}} "{{.Value}}" "{{.Scenario}}" "{{.Duration}}"
 {{- else -}}
-${{$.NameOfMikrotikFunction}}v6 "{{.Value}}" "{{$scenario}}" "{{.Duration}}"
+${{$.NameOfMikrotikFunction}}v6 "{{.Value}}" "{{.Scenario}}" "{{.Duration}}"
 {{- end -}}
 {{ end -}}
 
