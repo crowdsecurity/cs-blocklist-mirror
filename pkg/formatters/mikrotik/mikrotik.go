@@ -49,7 +49,7 @@ func Format(w http.ResponseWriter, r *http.Request) {
 
 	// Parse the template
 	parsedTemplate, err := template.New("script").Funcs(template.FuncMap{
-		"contains":       strings.Contains,
+		"contains": strings.Contains,
 	}).Parse(MikrotikScriptTemplate)
 	if err != nil {
 		http.Error(w, "Error parsing template: "+err.Error(), http.StatusInternalServerError)
@@ -65,4 +65,3 @@ func Format(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write(buf.Bytes())
 }
-
