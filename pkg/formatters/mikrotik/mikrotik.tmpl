@@ -1,46 +1,31 @@
-{{if not $.IPv6Only -}}
-:global {{$.NameOfMikrotikFunction}} do={
-  :local list "{{$.ListName}}"
-  :local address $1
-  :local comment $2
-  :local timeout $3
-  onerror e in={ 
-    /ip firewall address-list add list=$list address=$address comment=$comment timeout="$timeout"
-  } do={
-    /ip firewall address-list remove [ find list=$list address="$address" ]
-    /ip firewall address-list add list=$list address=$address comment=$comment timeout="$timeout"
-  }
+{{ if not $.IPv6Only }}
+/ip/firewall/address-list/remove [ find where list="{{$.ListName}}" ];
+:global {{$.NameOfMikrotikFunction}};
+:set {{$.NameOfMikrotikFunction}} do={
+    :do { /ip/firewall/address-list/add list={{$.ListName}} address=$1 comment="$2" timeout=$3; } on-error={ }
 }
-{{- if not $.IPv4Only}}
-{{end}}{{end}}
-{{- if not $.IPv4Only -}}
-:global {{$.NameOfMikrotikFunction}}v6 do={
-  :local list "{{$.ListName}}"
-  :local address $1
-  :local comment $2
-  :local timeout $3
-  onerror e in={ 
-    /ipv6 firewall address-list add list=$list address=$address comment=$comment timeout="$timeout"
-  } do={
-    /ipv6 firewall address-list remove [ find list=$list address="$address" ]
-    /ipv6 firewall address-list add list=$list address=$address comment=$comment timeout="$timeout"
-  }
+{{ end -}}
+{{ if not $.IPv4Only }}
+/ipv6/firewall/address-list/remove [ find where list="{{$.ListName}}" ];
+:global {{$.NameOfMikrotikFunction}}v6;
+:set {{$.NameOfMikrotikFunction}}v6 do={
+    :do { /ipv6/firewall/address-list/add list={{$.ListName}} address=$1 comment="$2" timeout=$3; } on-error={ }
 }
-{{- end -}}
+{{ end -}}
 
-{{- range .Decisions}}
-{{ $ipv6Check := contains .Value ":"}}
+{{- range .Decisions -}}
+{{ $ipv6Check := contains .Value ":" }}
 {{- if not $ipv6Check -}}
-${{$.NameOfMikrotikFunction}} {{.Value}} "{{.Scenario}}" {{.Duration}}
+${{$.NameOfMikrotikFunction}} "{{.Value}}" "{{.Scenario}}" "{{.Duration}}"
 {{- else -}}
-${{$.NameOfMikrotikFunction}}v6 {{.Value}} "{{.Scenario}}" {{.Duration}}
+${{$.NameOfMikrotikFunction}}v6 "{{.Value}}" "{{.Scenario}}" "{{.Duration}}"
 {{- end }}
-{{- end }}
+{{ end -}}
 
-{{- if not $.IPv6Only }}
-:set {{$.NameOfMikrotikFunction}}
-{{- end}}
-{{- if not $.IPv4Only }}
-:set {{$.NameOfMikrotikFunction}}v6
-{{- end}}
+{{ if not $.IPv6Only }}
+:set {{$.NameOfMikrotikFunction}};
+{{- end -}}
+{{ if not $.IPv4Only }}
+:set {{$.NameOfMikrotikFunction}}v6;
+{{- end -}}
 
