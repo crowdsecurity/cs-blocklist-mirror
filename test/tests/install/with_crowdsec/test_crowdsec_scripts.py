@@ -10,7 +10,7 @@ CONFIG = f"/etc/crowdsec/bouncers/{BOUNCER}.yaml"
 
 
 @pytest.mark.systemd_debug(BOUNCER)
-@pytest.mark.dependency()
+@pytest.mark.dependency
 def test_install_crowdsec(project_repo, bouncer_binary, must_be_root):
     c = pexpect.spawn(
         '/usr/bin/sh', ['scripts/install.sh'],
