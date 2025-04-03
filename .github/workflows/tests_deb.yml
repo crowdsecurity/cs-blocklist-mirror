@@ -24,20 +24,23 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.22'
+        go-version-file: go.mod
 
     - name: "Setup Python"
       uses: actions/setup-python@v5
       with:
-        python-version: "3.x"
+        python-version: "3.12"
         cache: 'pipenv'
 
     - name: "Install python dependencies"
+      env:
+        PIP_BREAK_SYSTEM_PACKAGES: 1
+        PIP_IGNORE_INSTALLED: 1
       run: |
-        python -m pip install --upgrade pipenv wheel
+        python -m pip install --upgrade pipenv
         pipenv install --deploy
         # some tests need root, so we have to install pytest twice
-        sudo python3 -m pip install --upgrade pipenv wheel
+        sudo python3 -m pip install --upgrade pipenv
         sudo pipenv install --deploy
 
     - name: Install functional test dependencies
