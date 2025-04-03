@@ -42,7 +42,7 @@ def test_tls_server(crowdsec, certs_dir, api_key_factory, bouncer, bm_cfg_factor
         with bouncer(cfg) as bm:
             bm.wait_for_lines_fnmatch([
                 "*Using API key auth*",
-                "*Starting server at 127.0.0.1:*"
+                "*listening on tcp server: 127.0.0.1:*"
             ])
 
 
@@ -94,7 +94,7 @@ def test_tls_mutual(crowdsec, certs_dir, bouncer, bm_cfg_factory, bouncer_under_
                 "*Starting crowdsec-blocklist-mirror*",
                 "*Using CA cert*",
                 "*Using cert auth with cert * and key *",
-                "*Starting server at 127.0.0.1:*"
+                "*listening on tcp server: 127.0.0.1:*"
             ])
 
             # check that the bouncer is registered

@@ -29,7 +29,7 @@ func RunServer(ctx context.Context, g *errgroup.Group, config cfg.Config) error 
 			return err
 		}
 
-		http.HandleFunc(blockListCFG.Endpoint, f)
+		http.HandleFunc(blockListCFG.Endpoint, globalMiddleware(config, f))
 		log.Infof("serving blocklist in format %s at endpoint %s", blockListCFG.Format, blockListCFG.Endpoint)
 	}
 
@@ -51,16 +51,37 @@ func RunServer(ctx context.Context, g *errgroup.Group, config cfg.Config) error 
 	}
 
 	server := &http.Server{
-		Addr:    config.ListenURI,
 		Handler: logHandler,
 	}
 
 	g.Go(func() error {
-		err := listenAndServe(server, config)
-		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			return err
+		if config.ListenSocket != "" {
+			log.Info("listening on unix socket: ", config.ListenSocket)
+			listener, err := net.Listen("unix", config.ListenSocket)
+			if err != nil {
+				return err
+			}
+			defer listener.Close()
+			if err := listenAndServe(server, listener, config); !errors.Is(err, http.ErrServerClosed) {
+				return err
+			}
 		}
+		return nil
+	})
 
+	g.Go(func() error {
+		if config.ListenURI != "" {
+			log.Info("listening on tcp server: ", config.ListenURI)
+			listener, err := net.Listen("tcp", config.ListenURI)
+			if err != nil {
+				return err
+			}
+			defer listener.Close()
+
+			if err := listenAndServe(server, listener, config); !errors.Is(err, http.ErrServerClosed) {
+				return err
+			}
+		}
 		return nil
 	})
 
@@ -73,15 +94,57 @@ func RunServer(ctx context.Context, g *errgroup.Group, config cfg.Config) error 
 	return nil
 }
 
-func listenAndServe(server *http.Server, config cfg.Config) error {
+/*
+Global middlewares are middlewares that are applied to all routes and are not specific to a blocklist.
+*/
+func globalMiddleware(config cfg.Config, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		//Parsed unix socket request
+		if r.RemoteAddr == "@" {
+			r.RemoteAddr = "127.0.0.1:65535"
+		}
+		//Trusted proxies
+		header := r.Header.Get(config.TrustedHeader)
+		// If there is no header then we don't need to do anything
+		if header != "" {
+			headerSplit := strings.Split(header, ",")
+			ip, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr))
+			if err != nil {
+				log.Errorf("error while spliting hostport for %s: %v", r.RemoteAddr, err)
+				http.Error(w, "internal error", http.StatusInternalServerError)
+				return
+			}
+			//Loop over the parsed trusted proxies
+			for _, trustedProxy := range config.ParsedTrustedProxies {
+				//check if the remote address is in the trusted proxies
+				if trustedProxy.Contains(net.ParseIP(ip)) {
+					// Loop over the header values in reverse order
+					for i := len(headerSplit) - 1; i >= 0; i-- {
+						ipStr := strings.TrimSpace(headerSplit[i])
+						ip := net.ParseIP(ipStr)
+						if ip == nil {
+							break
+						}
+						// If the IP is not in the trusted proxies, set the remote address to the IP
+						if (i == 0) || (!trustedProxy.Contains(ip)) {
+							r.RemoteAddr = ipStr
+							break
+						}
+					}
+				}
+			}
+		}
+
+		next.ServeHTTP(w, r)
+	}
+}
+
+func listenAndServe(server *http.Server, listener net.Listener, config cfg.Config) error {
 	if config.TLS.CertFile != "" && config.TLS.KeyFile != "" {
-		log.Infof("Starting server with TLS at %s", config.ListenURI)
-		return server.ListenAndServeTLS(config.TLS.CertFile, config.TLS.KeyFile)
+		return server.ServeTLS(listener, config.TLS.CertFile, config.TLS.KeyFile)
 	}
 
-	log.Infof("Starting server at %s", config.ListenURI)
-
-	return server.ListenAndServe()
+	return server.Serve(listener)
 }
 
 var RouteHits = prometheus.NewCounterVec(
@@ -132,7 +195,7 @@ func toValidCIDR(ip string) string {
 }
 
 func getTrustedIPs(ips []string) ([]net.IPNet, error) {
-	trustedIPs := make([]net.IPNet, 0)
+	trustedIPs := make([]net.IPNet, 0, len(ips))
 
 	for _, ip := range ips {
 		cidr := toValidCIDR(ip)
@@ -183,36 +246,37 @@ func decisionMiddleware(next http.HandlerFunc) func(w http.ResponseWriter, r *ht
 
 func authMiddleware(blockListCfg *cfg.BlockListConfig, next http.HandlerFunc) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ip, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			log.Errorf("error while spliting hostport for %s: %v", r.RemoteAddr, err)
-			http.Error(w, "internal error", http.StatusInternalServerError)
+		authType := strings.ToLower(blockListCfg.Authentication.Type)
 
-			return
-		}
+		// If auth != none then we implement checks if not bypass them to the next handler
+		if authType != "none" {
+			ip, _, err := net.SplitHostPort(r.RemoteAddr)
+			// If we can't parse the IP, we use the remote address as is as it most likely been set by the trusted proxies middleware
+			if err != nil {
+				ip = r.RemoteAddr
+			}
 
-		trustedIPs, err := getTrustedIPs(blockListCfg.Authentication.TrustedIPs)
-		if err != nil {
-			log.Errorf("error while parsing trusted IPs: %v", err)
-			http.Error(w, "internal error", http.StatusInternalServerError)
+			trustedIPs, err := getTrustedIPs(blockListCfg.Authentication.TrustedIPs)
+			if err != nil {
+				log.Errorf("error while parsing trusted IPs: %v", err)
+				http.Error(w, "internal error", http.StatusInternalServerError)
 
-			return
-		}
-
-		switch strings.ToLower(blockListCfg.Authentication.Type) {
-		case "ip_based":
-			if !networksContainIP(trustedIPs, ip) {
-				http.Error(w, "access denied", http.StatusForbidden)
 				return
 			}
-		case "basic":
-			if !satisfiesBasicAuth(r, blockListCfg.Authentication.User, blockListCfg.Authentication.Password) {
-				http.Error(w, "access denied", http.StatusForbidden)
-				return
-			}
-		case "", "none":
-		}
 
+			switch authType {
+			case "ip_based":
+				if !networksContainIP(trustedIPs, ip) {
+					http.Error(w, "access denied", http.StatusForbidden)
+					return
+				}
+			case "basic":
+				if !satisfiesBasicAuth(r, blockListCfg.Authentication.User, blockListCfg.Authentication.Password) {
+					http.Error(w, "access denied", http.StatusForbidden)
+					return
+				}
+			}
+		}
 		next.ServeHTTP(w, r)
 	}
 }
