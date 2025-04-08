@@ -20,6 +20,11 @@ blocklists:
         - ::1
 
 listen_uri: 127.0.0.1:41412
+# listen_socket: /var/run/crowdsec-blocklist-mirror.sock
+# trusted_proxies:
+#  - 127.0.0.1
+#  - 127.0.0.1/32
+# trusted_header: X-Forwarded-For
 tls:
   cert_file:
   key_file:
