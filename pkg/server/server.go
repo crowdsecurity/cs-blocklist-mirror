@@ -260,5 +260,8 @@ func getHandlerForBlockList(blockListCfg *cfg.BlockListConfig) (func(w http.Resp
 		return nil, fmt.Errorf("unknown format %s", blockListCfg.Format)
 	}
 
-	return gzipMiddleware(authMiddleware(blockListCfg, metricsMiddleware(blockListCfg, decisionMiddleware(formatters.ByName[blockListCfg.Format])))), nil
+	return gzipMiddleware(
+		authMiddleware(blockListCfg,
+			metricsMiddleware(blockListCfg,
+				decisionMiddleware(formatters.ByName[blockListCfg.Format])))), nil
 }
