@@ -1,6 +1,7 @@
 package server
 
 import (
+	"compress/gzip"
 	"context"
 	"encoding/base64"
 	"errors"
@@ -217,10 +218,47 @@ func authMiddleware(blockListCfg *cfg.BlockListConfig, next http.HandlerFunc) fu
 	}
 }
 
+// gzipResponseWriter wraps http.ResponseWriter and gzip.Writer
+type gzipResponseWriter struct {
+	http.ResponseWriter
+	gz *gzip.Writer
+}
+
+func (w *gzipResponseWriter) Write(b []byte) (int, error) {
+	return w.gz.Write(b)
+}
+
+// gzipMiddleware checks for gzip support and wraps the response if needed
+func gzipMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Check if client accepts gzip encoding
+		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			// Set appropriate headers
+			w.Header().Set("Content-Encoding", "gzip")
+
+			// Create gzip writer
+			gz := gzip.NewWriter(w)
+			defer gz.Close()
+
+			// Wrap the response writer
+			grw := &gzipResponseWriter{
+				ResponseWriter: w,
+				gz:             gz,
+			}
+
+			next.ServeHTTP(grw, r)
+			return
+		}
+
+		// Fall back to normal response writer
+		next.ServeHTTP(w, r)
+	}
+}
+
 func getHandlerForBlockList(blockListCfg *cfg.BlockListConfig) (func(w http.ResponseWriter, r *http.Request), error) {
 	if _, ok := formatters.ByName[blockListCfg.Format]; !ok {
 		return nil, fmt.Errorf("unknown format %s", blockListCfg.Format)
 	}
 
-	return authMiddleware(blockListCfg, metricsMiddleware(blockListCfg, decisionMiddleware(formatters.ByName[blockListCfg.Format]))), nil
+	return gzipMiddleware(authMiddleware(blockListCfg, metricsMiddleware(blockListCfg, decisionMiddleware(formatters.ByName[blockListCfg.Format])))), nil
 }
