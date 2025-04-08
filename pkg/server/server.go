@@ -1,6 +1,7 @@
 package server
 
 import (
+	"compress/gzip"
 	"context"
 	"encoding/base64"
 	"errors"
@@ -105,17 +106,8 @@ func basicAuth(username, password string) string {
 }
 
 func satisfiesBasicAuth(r *http.Request, user, password string) bool {
-	if _, ok := r.Header[http.CanonicalHeaderKey("Authorization")]; !ok {
-		return false
-	}
-
 	expectedVal := "Basic " + basicAuth(user, password)
-	foundVal := r.Header[http.CanonicalHeaderKey("Authorization")][0]
-	log.WithFields(log.Fields{
-		"expected": expectedVal,
-		"found":    foundVal,
-	}).Debug("checking basic auth")
-
+	foundVal := r.Header.Get("Authorization")
 	return expectedVal == foundVal
 }
 
@@ -206,6 +198,11 @@ func authMiddleware(blockListCfg *cfg.BlockListConfig, next http.HandlerFunc) fu
 				return
 			}
 		case "basic":
+			if r.Header.Get("Authorization") == "" {
+				w.Header().Set("WWW-Authenticate", "Basic realm=\"crowdsec-blocklist-mirror\"")
+				http.Error(w, "access denied", http.StatusUnauthorized)
+				return
+			}
 			if !satisfiesBasicAuth(r, blockListCfg.Authentication.User, blockListCfg.Authentication.Password) {
 				http.Error(w, "access denied", http.StatusForbidden)
 				return
@@ -217,10 +214,50 @@ func authMiddleware(blockListCfg *cfg.BlockListConfig, next http.HandlerFunc) fu
 	}
 }
 
+// gzipResponseWriter wraps http.ResponseWriter and gzip.Writer
+type gzipResponseWriter struct {
+	http.ResponseWriter
+	gz *gzip.Writer
+}
+
+func (w *gzipResponseWriter) Write(b []byte) (int, error) {
+	return w.gz.Write(b)
+}
+
+// gzipMiddleware checks for gzip support and wraps the response if needed
+func gzipMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Check if client accepts gzip encoding
+		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			// Set appropriate headers
+			w.Header().Set("Content-Encoding", "gzip")
+
+			// Create gzip writer
+			gz := gzip.NewWriter(w)
+			defer gz.Close()
+
+			// Wrap the response writer
+			grw := &gzipResponseWriter{
+				ResponseWriter: w,
+				gz:             gz,
+			}
+
+			next.ServeHTTP(grw, r)
+			return
+		}
+
+		// Fall back to normal response writer
+		next.ServeHTTP(w, r)
+	}
+}
+
 func getHandlerForBlockList(blockListCfg *cfg.BlockListConfig) (func(w http.ResponseWriter, r *http.Request), error) {
 	if _, ok := formatters.ByName[blockListCfg.Format]; !ok {
 		return nil, fmt.Errorf("unknown format %s", blockListCfg.Format)
 	}
 
-	return authMiddleware(blockListCfg, metricsMiddleware(blockListCfg, decisionMiddleware(formatters.ByName[blockListCfg.Format]))), nil
+	return gzipMiddleware(
+		authMiddleware(blockListCfg,
+			metricsMiddleware(blockListCfg,
+				decisionMiddleware(formatters.ByName[blockListCfg.Format])))), nil
 }
