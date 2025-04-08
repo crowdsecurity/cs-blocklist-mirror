@@ -108,11 +108,6 @@ func basicAuth(username, password string) string {
 func satisfiesBasicAuth(r *http.Request, user, password string) bool {
 	expectedVal := "Basic " + basicAuth(user, password)
 	foundVal := r.Header.Get("Authorization")
-	log.WithFields(log.Fields{
-		"expected": expectedVal,
-		"found":    foundVal,
-	}).Debug("checking basic auth")
-
 	return expectedVal == foundVal
 }
 
