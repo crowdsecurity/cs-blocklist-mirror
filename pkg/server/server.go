@@ -106,17 +106,8 @@ func basicAuth(username, password string) string {
 }
 
 func satisfiesBasicAuth(r *http.Request, user, password string) bool {
-	if _, ok := r.Header[http.CanonicalHeaderKey("Authorization")]; !ok {
-		return false
-	}
-
 	expectedVal := "Basic " + basicAuth(user, password)
-	foundVal := r.Header[http.CanonicalHeaderKey("Authorization")][0]
-	log.WithFields(log.Fields{
-		"expected": expectedVal,
-		"found":    foundVal,
-	}).Debug("checking basic auth")
-
+	foundVal := r.Header.Get("Authorization")
 	return expectedVal == foundVal
 }
 
@@ -207,6 +198,11 @@ func authMiddleware(blockListCfg *cfg.BlockListConfig, next http.HandlerFunc) fu
 				return
 			}
 		case "basic":
+			if r.Header.Get("Authorization") == "" {
+				w.Header().Set("WWW-Authenticate", "Basic realm=\"crowdsec-blocklist-mirror\"")
+				http.Error(w, "access denied", http.StatusUnauthorized)
+				return
+			}
 			if !satisfiesBasicAuth(r, blockListCfg.Authentication.User, blockListCfg.Authentication.Password) {
 				http.Error(w, "access denied", http.StatusForbidden)
 				return
