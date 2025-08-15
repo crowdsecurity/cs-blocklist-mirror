@@ -44,7 +44,7 @@ func (dr *DecisionRegistry) GetActiveDecisions(filter url.Values) []*models.Deci
 		for _, v := range filter["supported_decisions_types"] {
 			for _, t := range strings.Split(v, ",") {
 				tt := strings.TrimSpace(strings.ToLower(t))
-				if tt == "" || tt == "all" {
+				if tt == "" {
 					continue
 				}
 				allowedTypes = append(allowedTypes, tt)
@@ -53,7 +53,7 @@ func (dr *DecisionRegistry) GetActiveDecisions(filter url.Values) []*models.Deci
 	} else {
 		for _, t := range dr.SupportedDecisionTypes {
 			tt := strings.TrimSpace(strings.ToLower(t))
-			if tt == "" || tt == "all" {
+			if tt == "" {
 				continue
 			}
 			allowedTypes = append(allowedTypes, tt)
