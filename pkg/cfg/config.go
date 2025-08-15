@@ -8,11 +8,12 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
 
 	"github.com/crowdsecurity/go-cs-lib/csstring"
-	"github.com/crowdsecurity/go-cs-lib/yamlpatch"
+	"github.com/crowdsecurity/go-cs-lib/csyaml"
+
+	"slices"
 
 	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/formatters"
 )
@@ -31,6 +32,7 @@ type CrowdsecConfig struct {
 	ExcludeScenariosContaining []string `yaml:"exclude_scenarios_containing"`
 	OnlyIncludeDecisionsFrom   []string `yaml:"only_include_decisions_from"`
 	Scopes                     []string `yaml:"scopes,omitempty"`
+	SupportedDecisionsTypes    []string `yaml:"supported_decisions_types"`
 }
 
 type BlockListConfig struct {
@@ -129,7 +131,7 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 }
 
 func MergedConfig(configPath string) ([]byte, error) {
-	patcher := yamlpatch.NewPatcher(configPath, ".local")
+	patcher := csyaml.NewPatcher(configPath, ".local")
 
 	data, err := patcher.MergedPatchContent()
 	if err != nil {

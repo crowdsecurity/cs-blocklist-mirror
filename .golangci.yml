@@ -123,8 +123,8 @@ linters:
         - name: function-length
           arguments:
             # lower this after refactoring
-            - 43
-            - 123
+            - 44
+            - 126
         - name: import-shadowing
           disabled: true
         - name: line-length-limit
