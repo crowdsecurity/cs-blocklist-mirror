@@ -35,9 +35,7 @@ func (dr *DecisionRegistry) AddDecisions(decisions []*models.Decision) {
 	}
 }
 
-func (dr *DecisionRegistry) GetActiveDecisions(filter url.Values) []*models.Decision {
-	ret := make([]*models.Decision, 0, len(dr.ActiveDecisionsByValue))
-
+func (dr *DecisionRegistry) GetSupportedDecisionTypesWithFilter(filter url.Values) []string {
 	// determine allowed types: per-request override or registry default
 	allowedTypes := make([]string, 0)
 	if filter.Has("supported_decisions_types") {
@@ -59,6 +57,14 @@ func (dr *DecisionRegistry) GetActiveDecisions(filter url.Values) []*models.Deci
 			allowedTypes = append(allowedTypes, tt)
 		}
 	}
+
+	return allowedTypes
+}
+
+func (dr *DecisionRegistry) GetActiveDecisions(filter url.Values) []*models.Decision {
+	ret := make([]*models.Decision, 0, len(dr.ActiveDecisionsByValue))
+
+	allowedTypes := dr.GetSupportedDecisionTypesWithFilter(filter)
 
 	for _, v := range dr.ActiveDecisionsByValue {
 		// filter by type if allowedTypes is non-empty
