@@ -74,7 +74,7 @@ jobs:
         # these need root
         sudo -E $(which uv) run pytest ./tests/install/no_crowdsec
         # these need a running crowdsec
-        docker run -d --name crowdsec -e CI_TESTING=true -e DISABLE_ONLINE_API=true -p 8080:8080 -ti crowdsecurity/crowdsec
+        docker run -d --name crowdsec -e CI_TESTING=true -e DISABLE_ONLINE_API=true -e CROWDSEC_BYPASS_DB_VOLUME_CHECK=true -p 8080:8080 -ti crowdsecurity/crowdsec
         install -m 0755 /dev/stdin /usr/local/bin/cscli <<'EOT'
         #!/bin/sh
         docker exec crowdsec cscli "$@"
