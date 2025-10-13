@@ -12,7 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/crowdsecurity/go-cs-lib/csstring"
-	"github.com/crowdsecurity/go-cs-lib/csyaml"
+	"github.com/crowdsecurity/go-cs-lib/yamlpatch"
 
 	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/formatters"
 )
@@ -129,7 +129,7 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 }
 
 func MergedConfig(configPath string) ([]byte, error) {
-	patcher := csyaml.NewPatcher(configPath, ".local")
+	patcher := yamlpatch.NewPatcher(configPath, ".local")
 
 	data, err := patcher.MergedPatchContent()
 	if err != nil {

@@ -10,11 +10,6 @@ linters:
     - forcetypeassert
     - gocritic
     - promlinter
-    - embeddedstructfieldcheck
-    - funcorder
-    - noinlineerr
-    - wsl_v5
-
 
     #
     # Redundant
@@ -122,8 +117,6 @@ linters:
             # lower this after refactoring
             - 22
         - name: empty-lines
-          disabled: true
-        - name: enforce-switch-style
           disabled: true
         - name: flag-parameter
           disabled: true

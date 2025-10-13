@@ -26,7 +26,8 @@ gen_apikey() {
 
 gen_config_file() {
     # shellcheck disable=SC2016
-    (umask 177 && API_KEY="$API_KEY" envsubst '$API_KEY' <"./config/$CONFIG_FILE" > "$CONFIG")
+    API_KEY=${API_KEY} envsubst '$API_KEY' <"./config/$CONFIG_FILE" | \
+        install -D -m 0600 /dev/stdin "$CONFIG"
 }
 
 install_bouncer() {
@@ -40,7 +41,7 @@ install_bouncer() {
     fi
     msg info "Installing $BOUNCER"
     install -v -m 0755 -D "$BIN_PATH" "$BIN_PATH_INSTALLED"
-    mkdir -p "$(dirname "$CONFIG")"
+    install -D -m 0600 "./config/$CONFIG_FILE" "$CONFIG"
     # shellcheck disable=SC2016
     CFG=${CONFIG_DIR} BIN=${BIN_PATH_INSTALLED} envsubst '$CFG $BIN' <"./config/$SERVICE" >"$SYSTEMD_PATH_FILE"
     systemctl daemon-reload
@@ -60,5 +61,5 @@ else
     msg warn "service not started. You need to get an API key and configure it in $CONFIG"
 fi
 
-msg succ "The $BOUNCER service has been installed."
+msg succ "The $BOUNCER service has been installed!"
 exit 0
