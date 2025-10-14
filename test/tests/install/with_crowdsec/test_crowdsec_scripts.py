@@ -15,7 +15,8 @@ def test_install_crowdsec(project_repo, bouncer_binary, must_be_root):
     c = pexpect.spawn(
         '/usr/bin/sh', ['scripts/install.sh'],
         encoding='utf-8',
-        cwd=project_repo
+        cwd=project_repo,
+        env={"NO_COLOR": "1"}
     )
 
     c.expect(f"Installing {BOUNCER}")

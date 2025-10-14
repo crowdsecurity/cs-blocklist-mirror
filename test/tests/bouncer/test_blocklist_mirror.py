@@ -49,7 +49,7 @@ def test_no_lapi(bouncer, bm_cfg_factory):
         bm.wait_for_lines_fnmatch([
             "*connection refused*",
             "*terminating bouncer process*",
-            "*bouncer stream halted*",
+            "*process terminated with error*",
         ])
         bm.proc.wait(timeout=0.2)
         assert not bm.proc.is_running()
