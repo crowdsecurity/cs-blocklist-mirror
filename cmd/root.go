@@ -125,8 +125,7 @@ func Execute() error {
 	g, ctx := errgroup.WithContext(context.Background())
 
 	g.Go(func() error {
-		decisionStreamer.Run(ctx)
-		return errors.New("bouncer stream halted")
+		return decisionStreamer.Run(ctx)
 	})
 
 	g.Go(func() error {

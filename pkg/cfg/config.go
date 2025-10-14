@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -12,8 +13,6 @@ import (
 
 	"github.com/crowdsecurity/go-cs-lib/csstring"
 	"github.com/crowdsecurity/go-cs-lib/csyaml"
-
-	"slices"
 
 	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/formatters"
 )

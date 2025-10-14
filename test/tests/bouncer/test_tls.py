@@ -17,7 +17,7 @@ def test_tls_server(crowdsec, certs_dir, api_key_factory, bouncer, bm_cfg_factor
     certs = certs_dir(lapi_hostname='lapi')
 
     volumes = {
-        certs: {'bind': '/etc/ssl/crowdsec', 'mode': 'ro'},
+        certs.as_posix(): {'bind': '/etc/ssl/crowdsec', 'mode': 'ro'},
     }
 
     with crowdsec(environment=lapi_env, volumes=volumes) as cs:
