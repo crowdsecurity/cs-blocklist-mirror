@@ -20,7 +20,8 @@ override_dh_auto_install:
 	install -D "$$BOUNCER" -t "debian/$$PKG/usr/bin/"; \
 	install -D "scripts/_bouncer.sh" -t "debian/$$PKG/usr/lib/$$PKG/"; \
 	install -D "config/$$BOUNCER.yaml" "debian/$$PKG/etc/crowdsec/bouncers/$$BOUNCER.yaml"; \
-	BIN="/usr/bin/$$BOUNCER" CFG="/etc/crowdsec/bouncers" envsubst '$$BIN $$CFG' < "config/$$BOUNCER.service" | install -D /dev/stdin "debian/$$PKG/etc/systemd/system/$$BOUNCER.service"
+	mkdir -p "debian/$$PKG/etc/systemd/system"; \
+	BIN="/usr/bin/$$BOUNCER" CFG="/etc/crowdsec/bouncers" envsubst '$$BIN $$CFG' < "config/$$BOUNCER.service" > "debian/$$PKG/etc/systemd/system/$$BOUNCER.service"
 
 execute_after_dh_fixperms:
 	@BOUNCER=crowdsec-blocklist-mirror; \
