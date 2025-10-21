@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
 
 	"github.com/crowdsecurity/go-cs-lib/csstring"
@@ -31,6 +31,7 @@ type CrowdsecConfig struct {
 	ExcludeScenariosContaining []string `yaml:"exclude_scenarios_containing"`
 	OnlyIncludeDecisionsFrom   []string `yaml:"only_include_decisions_from"`
 	Scopes                     []string `yaml:"scopes,omitempty"`
+	SupportedDecisionsTypes    []string `yaml:"supported_decisions_types"`
 }
 
 type BlockListConfig struct {

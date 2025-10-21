@@ -7,6 +7,8 @@ crowdsec_config:
   exclude_scenarios_containing: []
   only_include_decisions_from: []
   insecure_skip_verify: false
+  supported_decisions_types:
+    - ban
 
 blocklists:
   - format: plain_text # Supported formats are either "plain_text" or "mikrotik"

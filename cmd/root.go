@@ -85,6 +85,9 @@ func Execute() error {
 		return err
 	}
 
+	// propagate supported decision types to the registry for runtime filtering
+	registry.GlobalDecisionRegistry.SupportedDecisionTypes = config.CrowdsecConfig.SupportedDecisionsTypes
+
 	if debugMode != nil && *debugMode {
 		log.SetLevel(log.DebugLevel)
 	}

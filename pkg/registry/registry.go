@@ -2,6 +2,7 @@ package registry
 
 import (
 	"net/url"
+	"slices"
 	"sort"
 	"strings"
 
@@ -21,6 +22,7 @@ type Key int
 type DecisionRegistry struct {
 	ActiveDecisionsByValue map[string]*models.Decision
 	Key                    Key
+	SupportedDecisionTypes []string
 }
 
 func (dr *DecisionRegistry) AddDecisions(decisions []*models.Decision) {
@@ -33,10 +35,48 @@ func (dr *DecisionRegistry) AddDecisions(decisions []*models.Decision) {
 	}
 }
 
+func (dr *DecisionRegistry) GetSupportedDecisionTypesWithFilter(filter url.Values) []string {
+	// determine allowed types: per-request override or registry default
+	allowedTypes := make([]string, 0)
+	if filter.Has("supported_decisions_types") {
+		for _, v := range filter["supported_decisions_types"] {
+			for _, t := range strings.Split(v, ",") {
+				tt := strings.TrimSpace(strings.ToLower(t))
+				if tt == "" {
+					continue
+				}
+				allowedTypes = append(allowedTypes, tt)
+			}
+		}
+	} else {
+		for _, t := range dr.SupportedDecisionTypes {
+			tt := strings.TrimSpace(strings.ToLower(t))
+			if tt == "" {
+				continue
+			}
+			allowedTypes = append(allowedTypes, tt)
+		}
+	}
+
+	return allowedTypes
+}
+
 func (dr *DecisionRegistry) GetActiveDecisions(filter url.Values) []*models.Decision {
 	ret := make([]*models.Decision, 0, len(dr.ActiveDecisionsByValue))
 
+	allowedTypes := dr.GetSupportedDecisionTypesWithFilter(filter)
+
 	for _, v := range dr.ActiveDecisionsByValue {
+		// filter by type if allowedTypes is non-empty
+		if len(allowedTypes) > 0 {
+			dType := ""
+			if v.Type != nil {
+				dType = strings.ToLower(*v.Type)
+			}
+			if !slices.Contains(allowedTypes, dType) {
+				continue
+			}
+		}
 		if filter.Has("ipv6only") && strings.Contains(*v.Value, ".") {
 			continue
 		}
