@@ -35,7 +35,9 @@ mkdir -p %{buildroot}%{_bindir}
 install -m 755 -D %{name} %{buildroot}%{_bindir}/%{name}
 install -m 600 -D config/%{name}.yaml %{buildroot}/etc/crowdsec/bouncers/%{name}.yaml
 install -m 600 -D scripts/_bouncer.sh %{buildroot}/usr/lib/%{name}/_bouncer.sh
-BIN=%{_bindir}/%{name} CFG=/etc/crowdsec/bouncers envsubst '$BIN $CFG' < config/%{name}.service | install -m 0644 -D /dev/stdin %{buildroot}%{_unitdir}/%{name}.service
+
+mkdir -p %{buildroot}%{_unitdir}
+BIN=%{_bindir}/%{name} CFG=/etc/crowdsec/bouncers envsubst '$BIN $CFG' < config/%{name}.service > %{buildroot}%{_unitdir}/%{name}.service
 
 %clean
 rm -rf %{buildroot}
