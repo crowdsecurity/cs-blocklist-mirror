@@ -56,7 +56,7 @@ func Execute() error {
 	flag.Parse()
 
 	if *bouncerVersion {
-		fmt.Printf("%s", version.FullString())
+		fmt.Fprintf(os.Stdout, "%s", version.FullString())
 		return nil
 	}
 
@@ -70,7 +70,7 @@ func Execute() error {
 	}
 
 	if *showConfig {
-		fmt.Println(string(configBytes))
+		fmt.Fprintln(os.Stdout, string(configBytes))
 		return nil
 	}
 

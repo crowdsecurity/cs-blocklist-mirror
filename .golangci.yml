@@ -3,18 +3,13 @@ version: "2"
 linters:
   default: all
   disable:
-    - testableexamples
     - errcheck
-    - exptostd
-    - forbidigo
     - forcetypeassert
-    - gocritic
     - promlinter
     - embeddedstructfieldcheck
     - funcorder
     - noinlineerr
     - wsl_v5
-
 
     #
     # Redundant
@@ -76,16 +71,16 @@ linters:
               desc: yaml.v2 is deprecated for new code in favor of yaml.v3
 
     errcheck:
-      # Report about not checking of errors in type assertions: `a := b.(MyStruct)`.
-      # Such cases aren't reported by default.
       check-type-assertions: false
-      # List of functions to exclude from checking, where each entry is a single function to exclude.
-      # See https://github.com/kisielk/errcheck#excluding-functions for details.
 
     gocritic:
       enable-all: true
       disabled-checks:
+        - appendCombine
+        - hugeParam
+        - importShadow
         - paramTypeCombine
+        - whyNoLint
 
     govet:
       disable:
@@ -115,8 +110,6 @@ linters:
             - 33
         - name: comment-spacings
           disabled: true
-#        - name: confusing-results
-#          disabled: true
         - name: cyclomatic
           arguments:
             # lower this after refactoring
@@ -142,8 +135,6 @@ linters:
           disabled: true
         - name: package-comments
           disabled: true
-        - name: var-naming
-          disabled: true
         - name: unchecked-type-assertion
           disabled: true
         - name: useless-break
@@ -152,10 +143,6 @@ linters:
     staticcheck:
       checks:
         - all
-
-    wsl:
-      # Allow blocks to end with comments
-      allow-trailing-comment: true
 
   exclusions:
     presets:
