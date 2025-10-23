@@ -49,20 +49,23 @@ msg() {
 }
 
 require() {
-    set | grep -q "^$1=" || { msg err "missing required variable \$$1"; exit 1; }
+    set | grep -q "^$1=" || {
+        msg err "missing required variable \$$1"
+            exit 1
+        }
     shift
     [ "$#" -eq 0 ] || require "$@"
 }
 
 # shellcheck disable=SC2034
 {
-SERVICE="$BOUNCER.service"
-BIN_PATH_INSTALLED="/usr/local/bin/$BOUNCER"
-BIN_PATH="./$BOUNCER"
-CONFIG_DIR="/etc/crowdsec/bouncers"
-CONFIG_FILE="$BOUNCER.yaml"
-CONFIG="$CONFIG_DIR/$CONFIG_FILE"
-SYSTEMD_PATH_FILE="/etc/systemd/system/$SERVICE"
+    SERVICE="$BOUNCER.service"
+    BIN_PATH_INSTALLED="/usr/local/bin/$BOUNCER"
+    BIN_PATH="./$BOUNCER"
+    CONFIG_DIR="/etc/crowdsec/bouncers"
+    CONFIG_FILE="$BOUNCER.yaml"
+    CONFIG="$CONFIG_DIR/$CONFIG_FILE"
+    SYSTEMD_PATH_FILE="/etc/systemd/system/$SERVICE"
 }
 
 assert_root() {
@@ -141,7 +144,7 @@ set_api_key() {
             ret=1
         else
             echo "API Key successfully created" >&2
-            echo "$bouncer_id" > "$CONFIG.id"
+            echo "$bouncer_id" >"$CONFIG.id"
         fi
     else
         echo "cscli/crowdsec is not present, please set the API key manually" >&2
