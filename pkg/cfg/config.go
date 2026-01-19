@@ -37,6 +37,7 @@ type CrowdsecConfig struct {
 type BlockListConfig struct {
 	Format         string `yaml:"format"`
 	Endpoint       string `yaml:"endpoint"`
+	Aggregate      bool   `yaml:"aggregate"`
 	Authentication struct {
 		Type       string   `yaml:"type"`
 		User       string   `yaml:"user"`

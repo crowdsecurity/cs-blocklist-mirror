@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"slices"
 	"strings"
 	"syscall"
 
@@ -87,6 +88,12 @@ func Execute() error {
 
 	// propagate supported decision types to the registry for runtime filtering
 	registry.GlobalDecisionRegistry.SupportedDecisionTypes = config.CrowdsecConfig.SupportedDecisionsTypes
+
+	// enable aggregation on registry if any blocklist needs it
+	if slices.ContainsFunc(config.Blocklists, func(b *cfg.BlockListConfig) bool { return b.Aggregate }) {
+		registry.GlobalDecisionRegistry.EnableAggregation()
+		log.Info("aggregation enabled for at least one blocklist")
+	}
 
 	if debugMode != nil && *debugMode {
 		log.SetLevel(log.DebugLevel)
