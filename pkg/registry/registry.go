@@ -43,6 +43,10 @@ func (dr *DecisionRegistry) AddDecisions(decisions []*models.Decision) {
 	defer dr.mu.Unlock()
 
 	for _, decision := range decisions {
+		if decision == nil || decision.Value == nil {
+			continue
+		}
+
 		if _, ok := dr.ActiveDecisionsByValue[*decision.Value]; !ok {
 			activeDecisionCount.Inc()
 		}
@@ -159,6 +163,10 @@ func (dr *DecisionRegistry) DeleteDecisions(decisions []*models.Decision) {
 	defer dr.mu.Unlock()
 
 	for _, decision := range decisions {
+		if decision == nil || decision.Value == nil {
+			continue
+		}
+
 		if _, ok := dr.ActiveDecisionsByValue[*decision.Value]; ok {
 			delete(dr.ActiveDecisionsByValue, *decision.Value)
 			activeDecisionCount.Dec()
