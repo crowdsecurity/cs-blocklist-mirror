@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -162,15 +164,63 @@ func metricsMiddleware(blockListCfg *cfg.BlockListConfig, next http.HandlerFunc)
 
 func decisionMiddleware(next http.HandlerFunc) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		decisions := registry.GlobalDecisionRegistry.GetActiveDecisions(r.URL.Query())
-		if len(decisions) == 0 {
+		result := registry.GlobalDecisionRegistry.GetActiveDecisionsPaginated(r.URL.Query())
+		if len(result.Decisions) == 0 && result.Total == 0 {
 			http.Error(w, "no decisions available", http.StatusNotFound)
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), registry.GlobalDecisionRegistry.Key, decisions)
+		// Add pagination headers
+		w.Header().Set("X-Total-Count", strconv.Itoa(result.Total))
+		w.Header().Set("X-Page", strconv.Itoa(result.Page))
+		w.Header().Set("X-Per-Page", strconv.Itoa(result.PerPage))
+		w.Header().Set("X-Total-Pages", strconv.Itoa(result.TotalPages))
+
+		// Add Link headers for navigation
+		if linkHeader := buildLinkHeader(r.URL, result); linkHeader != "" {
+			w.Header().Set("Link", linkHeader)
+		}
+
+		ctx := context.WithValue(r.Context(), registry.GlobalDecisionRegistry.Key, result.Decisions)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
+}
+
+// buildLinkHeader creates RFC 5988 Link headers for pagination navigation
+func buildLinkHeader(reqURL *url.URL, result registry.PaginatedResult) string {
+	// No pagination headers needed if not paginated or only one page
+	if result.PerPage == 0 || result.TotalPages <= 1 {
+		return ""
+	}
+
+	var links []string
+	baseURL := *reqURL
+
+	// Helper to build a link for a specific page
+	buildLink := func(page int, rel string) string {
+		q := baseURL.Query()
+		q.Set("page", strconv.Itoa(page))
+		baseURL.RawQuery = q.Encode()
+		return fmt.Sprintf("<%s>; rel=%q", baseURL.String(), rel)
+	}
+
+	// First page
+	links = append(links, buildLink(1, "first"))
+
+	// Last page
+	links = append(links, buildLink(result.TotalPages, "last"))
+
+	// Previous page (if not on first page)
+	if result.Page > 1 {
+		links = append(links, buildLink(result.Page-1, "prev"))
+	}
+
+	// Next page (if not on last page)
+	if result.Page < result.TotalPages {
+		links = append(links, buildLink(result.Page+1, "next"))
+	}
+
+	return strings.Join(links, ", ")
 }
 
 func authMiddleware(blockListCfg *cfg.BlockListConfig, next http.HandlerFunc) func(w http.ResponseWriter, r *http.Request) {
