@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -11,6 +12,15 @@ import (
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 )
+
+// PaginatedResult holds paginated decisions with metadata
+type PaginatedResult struct {
+	Decisions  []*models.Decision
+	Total      int
+	Page       int
+	PerPage    int
+	TotalPages int
+}
 
 var activeDecisionCount prometheus.Gauge = promauto.NewGauge(prometheus.GaugeOpts{
 	Name: "active_decision_count",
@@ -99,6 +109,70 @@ func (dr *DecisionRegistry) GetActiveDecisions(filter url.Values) []*models.Deci
 	}
 
 	return ret
+}
+
+// GetActiveDecisionsPaginated returns paginated decisions with metadata.
+// Query params: page (default 1), per_page (default 0 = all)
+func (dr *DecisionRegistry) GetActiveDecisionsPaginated(filter url.Values) PaginatedResult {
+	// Get all filtered and sorted decisions first
+	allDecisions := dr.GetActiveDecisions(filter)
+	total := len(allDecisions)
+
+	// Parse pagination params
+	page := 1
+	perPage := 0 // 0 means no pagination (return all)
+
+	if filter.Has("page") {
+		if p, err := strconv.Atoi(filter.Get("page")); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	if filter.Has("per_page") {
+		if pp, err := strconv.Atoi(filter.Get("per_page")); err == nil && pp > 0 {
+			perPage = pp
+		}
+	}
+
+	// If no pagination requested, return all results
+	if perPage == 0 {
+		return PaginatedResult{
+			Decisions:  allDecisions,
+			Total:      total,
+			Page:       1,
+			PerPage:    total,
+			TotalPages: 1,
+		}
+	}
+
+	// Calculate pagination
+	totalPages := (total + perPage - 1) / perPage // ceiling division
+	if totalPages == 0 {
+		totalPages = 1
+	}
+
+	// Clamp page to valid range
+	if page > totalPages {
+		page = totalPages
+	}
+
+	// Calculate slice bounds
+	start := (page - 1) * perPage
+	end := start + perPage
+	if end > total {
+		end = total
+	}
+	if start > total {
+		start = total
+	}
+
+	return PaginatedResult{
+		Decisions:  allDecisions[start:end],
+		Total:      total,
+		Page:       page,
+		PerPage:    perPage,
+		TotalPages: totalPages,
+	}
 }
 
 func (dr *DecisionRegistry) DeleteDecisions(decisions []*models.Decision) {
