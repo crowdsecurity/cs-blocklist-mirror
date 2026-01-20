@@ -160,15 +160,8 @@ func Execute() error {
 					continue
 				}
 
-				if len(decisions.New) > 0 {
-					log.Infof("received %d new decisions", len(decisions.New))
-					registry.GlobalDecisionRegistry.AddDecisions(decisions.New)
-				}
-
-				if len(decisions.Deleted) > 0 {
-					log.Infof("received %d expired decisions", len(decisions.Deleted))
-					registry.GlobalDecisionRegistry.DeleteDecisions(decisions.Deleted)
-				}
+				log.Debugf("received %d new, %d expired decisions", len(decisions.New), len(decisions.Deleted))
+				registry.GlobalDecisionRegistry.ProcessDecisions(decisions.New, decisions.Deleted)
 			}
 		}
 	})

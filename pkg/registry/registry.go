@@ -176,6 +176,45 @@ func (dr *DecisionRegistry) DeleteDecisions(decisions []*models.Decision) {
 	dr.recomputeAggregated()
 }
 
+// ProcessDecisions handles both new and deleted decisions in a single operation,
+// recomputing aggregation only once after all changes are applied.
+func (dr *DecisionRegistry) ProcessDecisions(newDecisions, deletedDecisions []*models.Decision) {
+	if len(newDecisions) == 0 && len(deletedDecisions) == 0 {
+		return
+	}
+
+	dr.mu.Lock()
+	defer dr.mu.Unlock()
+
+	// Process deletions first to handle any replacements correctly
+	for _, decision := range deletedDecisions {
+		if decision == nil || decision.Value == nil {
+			continue
+		}
+
+		if _, ok := dr.ActiveDecisionsByValue[*decision.Value]; ok {
+			delete(dr.ActiveDecisionsByValue, *decision.Value)
+			activeDecisionCount.Dec()
+		}
+	}
+
+	// Process additions
+	for _, decision := range newDecisions {
+		if decision == nil || decision.Value == nil {
+			continue
+		}
+
+		if _, ok := dr.ActiveDecisionsByValue[*decision.Value]; !ok {
+			activeDecisionCount.Inc()
+		}
+
+		dr.ActiveDecisionsByValue[*decision.Value] = decision
+	}
+
+	// Recompute aggregation only once
+	dr.recomputeAggregated()
+}
+
 var GlobalDecisionRegistry = DecisionRegistry{
 	ActiveDecisionsByValue: make(map[string]*models.Decision),
 }
