@@ -5,13 +5,10 @@ import (
 	"testing"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
+	"github.com/crowdsecurity/go-cs-lib/ptr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func ptr(s string) *string {
-	return &s
-}
 
 func TestParseValue(t *testing.T) {
 	tests := []struct {
@@ -274,32 +271,32 @@ func TestAggregate(t *testing.T) {
 		{
 			name: "single IP decision",
 			input: []*models.Decision{
-				{Value: ptr("10.0.0.1")},
+				{Value: ptr.Of("10.0.0.1")},
 			},
-			expect: []string{"10.0.0.1/32"},
+			expect: []string{"10.0.0.1/32"}, // Always use CIDR notation, even for single IPs
 		},
 		{
 			name: "adjacent IPs merge",
 			input: []*models.Decision{
-				{Value: ptr("10.0.0.0")},
-				{Value: ptr("10.0.0.1")},
+				{Value: ptr.Of("10.0.0.0")},
+				{Value: ptr.Of("10.0.0.1")},
 			},
 			expect: []string{"10.0.0.0/31"},
 		},
 		{
 			name: "CIDR decisions",
 			input: []*models.Decision{
-				{Value: ptr("10.0.0.0/24")},
-				{Value: ptr("10.0.1.0/24")},
+				{Value: ptr.Of("10.0.0.0/24")},
+				{Value: ptr.Of("10.0.1.0/24")},
 			},
 			expect: []string{"10.0.0.0/23"},
 		},
 		{
 			name: "nil value skipped",
 			input: []*models.Decision{
-				{Value: ptr("10.0.0.0")},
+				{Value: ptr.Of("10.0.0.0")},
 				{Value: nil},
-				{Value: ptr("10.0.0.1")},
+				{Value: ptr.Of("10.0.0.1")},
 			},
 			expect: []string{"10.0.0.0/31"},
 		},
@@ -325,23 +322,34 @@ func TestAggregate(t *testing.T) {
 }
 
 func TestAggregateScope(t *testing.T) {
-	// Test that scope is set correctly
+	// Test that scope is always "range" and values are always CIDR notation
 	input := []*models.Decision{
-		{Value: ptr("10.0.0.0")},
-		{Value: ptr("10.0.0.1")},
-		{Value: ptr("192.168.1.1")},
+		{Value: ptr.Of("10.0.0.0")},
+		{Value: ptr.Of("10.0.0.1")},
+		{Value: ptr.Of("192.168.1.1")},
 	}
 
 	got := Aggregate(input)
 	require.Len(t, got, 2)
 
-	// 10.0.0.0/31 should be "range"
+	// 10.0.0.0/31 should be "range" with CIDR notation
 	assert.Equal(t, "10.0.0.0/31", *got[0].Value)
 	assert.Equal(t, "range", *got[0].Scope)
 
-	// 192.168.1.1/32 should be "Ip"
+	// 192.168.1.1/32 should also be "range" with CIDR notation (not "Ip")
 	assert.Equal(t, "192.168.1.1/32", *got[1].Value)
-	assert.Equal(t, "Ip", *got[1].Scope)
+	assert.Equal(t, "range", *got[1].Scope)
+	
+	// Verify placeholder metadata is set to prevent panics in formatters
+	assert.NotNil(t, got[0].Scenario)
+	assert.Equal(t, "aggregated", *got[0].Scenario)
+	assert.NotNil(t, got[0].Duration)
+	assert.Equal(t, "24h", *got[0].Duration)
+	
+	assert.NotNil(t, got[1].Scenario)
+	assert.Equal(t, "aggregated", *got[1].Scenario)
+	assert.NotNil(t, got[1].Duration)
+	assert.Equal(t, "24h", *got[1].Duration)
 }
 
 // generateConsecutiveIPs generates n consecutive IPs starting from start

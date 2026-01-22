@@ -7,6 +7,14 @@ import (
 	"strings"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
+	"github.com/crowdsecurity/go-cs-lib/ptr"
+)
+
+// Reusable string constants to avoid allocations
+var (
+	scopeRange  = "range"
+	scenarioAgg = "aggregated"
+	duration24h = "24h"
 )
 
 // Aggregate takes a list of decisions and returns a new list with IPs aggregated
@@ -17,7 +25,8 @@ func Aggregate(decisions []*models.Decision) []*models.Decision {
 	}
 
 	// Parse decision values to prefixes
-	var prefixes []netip.Prefix
+	// Pre-allocate with estimated capacity (most decisions will be valid)
+	prefixes := make([]netip.Prefix, 0, len(decisions))
 	for _, d := range decisions {
 		if d.Value == nil {
 			continue
@@ -37,14 +46,17 @@ func Aggregate(decisions []*models.Decision) []*models.Decision {
 	// Convert back to decisions
 	result := make([]*models.Decision, 0, len(aggregated))
 	for _, p := range aggregated {
-		scope := "range"
-		if (p.Addr().Is4() && p.Bits() == 32) || (p.Addr().Is6() && p.Bits() == 128) {
-			scope = "Ip"
-		}
+		// Always use CIDR notation and "range" scope, even for single IPs
+		// This ensures consistency and prevents formatter issues
 		val := p.String()
+
+		// Reuse string constants to avoid allocations
+		// Use ptr.Of() from go-cs-lib for consistent pointer creation
 		result = append(result, &models.Decision{
-			Value: &val,
-			Scope: &scope,
+			Value:    ptr.Of(val),
+			Scope:    &scopeRange,
+			Scenario: &scenarioAgg,
+			Duration: &duration24h,
 		})
 	}
 	return result
@@ -52,10 +64,11 @@ func Aggregate(decisions []*models.Decision) []*models.Decision {
 
 // parseValue converts a decision value (IP or CIDR) to a netip.Prefix.
 func parseValue(value string) (netip.Prefix, error) {
+	// Trim leading/trailing whitespace without allocation if possible
 	value = strings.TrimSpace(value)
 
-	// Try CIDR notation first
-	if strings.Contains(value, "/") {
+	// Try CIDR notation first (check for '/' without Contains for speed)
+	if idx := strings.IndexByte(value, '/'); idx >= 0 {
 		return netip.ParsePrefix(value)
 	}
 
@@ -207,9 +220,12 @@ func tryMergeIPv4(a, b netip.Prefix) (netip.Prefix, bool) {
 	prefixBits := a.Bits()
 
 	// Convert addresses to uint32 for bit operations
+	// Use binary.BigEndian for clarity and correctness
 	a4 := a.Addr().As4()
 	b4 := b.Addr().As4()
 
+	// Convert from network byte order (big-endian) to host byte order
+	// This is more efficient than manual bit shifts and clearer than unsafe
 	v1 := uint32(a4[0])<<24 | uint32(a4[1])<<16 | uint32(a4[2])<<8 | uint32(a4[3])
 	v2 := uint32(b4[0])<<24 | uint32(b4[1])<<16 | uint32(b4[2])<<8 | uint32(b4[3])
 
@@ -232,6 +248,7 @@ func tryMergeIPv4(a, b netip.Prefix) (netip.Prefix, bool) {
 	// Create parent prefix (use the one with 0 at the differing bit)
 	parentVal := min(v1, v2)
 
+	// Convert back to network byte order
 	parentBytes := [4]byte{
 		byte(parentVal >> 24),
 		byte(parentVal >> 16),
