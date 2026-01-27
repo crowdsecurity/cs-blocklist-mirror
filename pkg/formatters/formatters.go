@@ -28,13 +28,9 @@ func PlainText(w http.ResponseWriter, r *http.Request) {
 func F5(w http.ResponseWriter, r *http.Request) {
 	decisions := r.Context().Value(registry.GlobalDecisionRegistry.Key).([]*models.Decision)
 	for _, decision := range decisions {
-		// Handle nil Scenario (defensive check, though aggregated decisions always have it set)
-		category := "unknown"
-		if decision.Scenario != nil {
-			category = *decision.Scenario
-			if strings.Contains(*decision.Scenario, "/") {
-				category = strings.Split(*decision.Scenario, "/")[1]
-			}
+		category := *decision.Scenario
+		if strings.Contains(*decision.Scenario, "/") {
+			category = strings.Split(*decision.Scenario, "/")[1]
 		}
 
 		switch strings.ToLower(*decision.Scope) {
