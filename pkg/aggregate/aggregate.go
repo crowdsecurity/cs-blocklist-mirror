@@ -67,8 +67,8 @@ func parseValue(value string) (netip.Prefix, error) {
 	// Trim leading/trailing whitespace without allocation if possible
 	value = strings.TrimSpace(value)
 
-	// Try CIDR notation first (check for '/' without Contains for speed)
-	if idx := strings.IndexByte(value, '/'); idx >= 0 {
+	// Try CIDR notation first
+	if strings.Contains(value, "/") {
 		return netip.ParsePrefix(value)
 	}
 
