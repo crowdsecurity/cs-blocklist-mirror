@@ -85,32 +85,24 @@ func parseValue(value string) (netip.Prefix, error) {
 }
 
 // aggregatePrefixes takes a list of prefixes and returns a minimal set by:
-// 1. Deduplicating
-// 2. Sorting by address then prefix length
-// 3. Merging adjacent prefixes and removing contained ones in a single pass
+// 1. Sorting by address then prefix length
+// 2. Merging adjacent prefixes, removing duplicates and contained ones in a single pass
 func aggregatePrefixes(prefixes []netip.Prefix) []netip.Prefix {
 	if len(prefixes) == 0 {
 		return []netip.Prefix{}
 	}
 
-	// Deduplicate using map
-	seen := make(map[netip.Prefix]struct{}, len(prefixes))
-	for _, p := range prefixes {
-		// Normalize prefix (ensure masked properly)
-		seen[p.Masked()] = struct{}{}
-	}
-
-	// Convert back to slice
-	unique := make([]netip.Prefix, 0, len(seen))
-	for p := range seen {
-		unique = append(unique, p)
+	// Normalize prefixes (ensure masked properly)
+	normalized := make([]netip.Prefix, len(prefixes))
+	for i, p := range prefixes {
+		normalized[i] = p.Masked()
 	}
 
 	// Sort by address, then by prefix length (shorter/larger blocks first)
-	sortPrefixes(unique)
+	sortPrefixes(normalized)
 
-	// Merge adjacent prefixes and remove contained in one pass
-	return mergeAndRemoveContained(unique)
+	// Merge adjacent prefixes - also handles duplicates and contained prefixes
+	return mergeAndRemoveContained(normalized)
 }
 
 // sortPrefixes sorts by address, then by prefix length (shorter first).
