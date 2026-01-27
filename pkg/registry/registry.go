@@ -38,25 +38,6 @@ func (dr *DecisionRegistry) EnableAggregation() {
 	dr.aggregationEnabled = true
 }
 
-func (dr *DecisionRegistry) AddDecisions(decisions []*models.Decision) {
-	dr.mu.Lock()
-	defer dr.mu.Unlock()
-
-	for _, decision := range decisions {
-		if decision == nil || decision.Value == nil {
-			continue
-		}
-
-		if _, ok := dr.ActiveDecisionsByValue[*decision.Value]; !ok {
-			activeDecisionCount.Inc()
-		}
-
-		dr.ActiveDecisionsByValue[*decision.Value] = decision
-	}
-
-	dr.recomputeAggregated()
-}
-
 func (dr *DecisionRegistry) GetSupportedDecisionTypesWithFilter(filter url.Values) []string {
 	// determine allowed types: per-request override or registry default
 	allowedTypes := make([]string, 0)
@@ -143,19 +124,21 @@ func (dr *DecisionRegistry) GetActiveDecisions(filter url.Values, aggregated boo
 	return ret
 }
 
-// recomputeAggregated rebuilds the aggregated decisions view.
-// Must be called with dr.mu held. Does nothing if aggregation is not enabled.
-func (dr *DecisionRegistry) recomputeAggregated() {
-	if !dr.aggregationEnabled {
-		return
-	}
+func (dr *DecisionRegistry) AddDecisions(decisions []*models.Decision) {
+	dr.mu.Lock()
+	defer dr.mu.Unlock()
 
-	all := make([]*models.Decision, 0, len(dr.ActiveDecisionsByValue))
-	for _, decision := range dr.ActiveDecisionsByValue {
-		all = append(all, decision)
-	}
+	for _, decision := range decisions {
+		if decision == nil || decision.Value == nil {
+			continue
+		}
 
-	dr.AggregatedDecisions = aggregate.Aggregate(all)
+		if _, ok := dr.ActiveDecisionsByValue[*decision.Value]; !ok {
+			activeDecisionCount.Inc()
+		}
+
+		dr.ActiveDecisionsByValue[*decision.Value] = decision
+	}
 }
 
 func (dr *DecisionRegistry) DeleteDecisions(decisions []*models.Decision) {
@@ -172,47 +155,24 @@ func (dr *DecisionRegistry) DeleteDecisions(decisions []*models.Decision) {
 			activeDecisionCount.Dec()
 		}
 	}
-
-	dr.recomputeAggregated()
 }
 
-// ProcessDecisions handles both new and deleted decisions in a single operation,
-// recomputing aggregation only once after all changes are applied.
-func (dr *DecisionRegistry) ProcessDecisions(newDecisions, deletedDecisions []*models.Decision) {
-	if len(newDecisions) == 0 && len(deletedDecisions) == 0 {
-		return
-	}
-
+// RecomputeAggregated rebuilds the aggregated decisions view.
+// Does nothing if aggregation is not enabled.
+func (dr *DecisionRegistry) RecomputeAggregated() {
 	dr.mu.Lock()
 	defer dr.mu.Unlock()
 
-	// Process deletions first to handle any replacements correctly
-	for _, decision := range deletedDecisions {
-		if decision == nil || decision.Value == nil {
-			continue
-		}
-
-		if _, ok := dr.ActiveDecisionsByValue[*decision.Value]; ok {
-			delete(dr.ActiveDecisionsByValue, *decision.Value)
-			activeDecisionCount.Dec()
-		}
+	if !dr.aggregationEnabled {
+		return
 	}
 
-	// Process additions
-	for _, decision := range newDecisions {
-		if decision == nil || decision.Value == nil {
-			continue
-		}
-
-		if _, ok := dr.ActiveDecisionsByValue[*decision.Value]; !ok {
-			activeDecisionCount.Inc()
-		}
-
-		dr.ActiveDecisionsByValue[*decision.Value] = decision
+	all := make([]*models.Decision, 0, len(dr.ActiveDecisionsByValue))
+	for _, decision := range dr.ActiveDecisionsByValue {
+		all = append(all, decision)
 	}
 
-	// Recompute aggregation only once
-	dr.recomputeAggregated()
+	dr.AggregatedDecisions = aggregate.Aggregate(all)
 }
 
 var GlobalDecisionRegistry = DecisionRegistry{

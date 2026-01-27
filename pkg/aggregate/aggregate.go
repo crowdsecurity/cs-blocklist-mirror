@@ -87,8 +87,7 @@ func parseValue(value string) (netip.Prefix, error) {
 // aggregatePrefixes takes a list of prefixes and returns a minimal set by:
 // 1. Deduplicating
 // 2. Sorting by address then prefix length
-// 3. Removing prefixes contained within larger prefixes
-// 4. Recursively merging adjacent prefixes
+// 3. Merging adjacent prefixes and removing contained ones in a single pass
 func aggregatePrefixes(prefixes []netip.Prefix) []netip.Prefix {
 	if len(prefixes) == 0 {
 		return []netip.Prefix{}
@@ -110,13 +109,8 @@ func aggregatePrefixes(prefixes []netip.Prefix) []netip.Prefix {
 	// Sort by address, then by prefix length (shorter/larger blocks first)
 	sortPrefixes(unique)
 
-	// Remove prefixes contained within larger prefixes
-	result := removeContained(unique)
-
-	// Recursively merge adjacent prefixes
-	result = mergeAdjacent(result)
-
-	return result
+	// Merge adjacent prefixes and remove contained in one pass
+	return mergeAndRemoveContained(unique)
 }
 
 // sortPrefixes sorts by address, then by prefix length (shorter first).
@@ -131,56 +125,47 @@ func sortPrefixes(prefixes []netip.Prefix) {
 	})
 }
 
-// removeContained removes prefixes that are contained within a previous larger prefix.
-func removeContained(sorted []netip.Prefix) []netip.Prefix {
-	if len(sorted) == 0 {
-		return []netip.Prefix{}
-	}
-
-	result := make([]netip.Prefix, 0, len(sorted))
-	for _, p := range sorted {
-		// Check if this prefix is contained in the last added prefix
-		if len(result) > 0 {
-			last := result[len(result)-1]
-			if last.Overlaps(p) && last.Bits() <= p.Bits() {
-				// Current prefix is contained in or equal to last, skip it
-				continue
-			}
-		}
-		result = append(result, p)
-	}
-	return result
-}
-
-// mergeAdjacent recursively merges adjacent prefixes into parent blocks.
-func mergeAdjacent(prefixes []netip.Prefix) []netip.Prefix {
+// mergeAndRemoveContained merges adjacent prefixes and removes contained ones in a single pass.
+// This combines the previous removeContained and mergeAdjacent functions to avoid extra iterations.
+func mergeAndRemoveContained(prefixes []netip.Prefix) []netip.Prefix {
 	if len(prefixes) <= 1 {
 		return prefixes
 	}
 
 	for {
 		merged := false
-		newResult := make([]netip.Prefix, 0, len(prefixes))
+		result := make([]netip.Prefix, 0, len(prefixes))
 
 		for i := 0; i < len(prefixes); i++ {
+			curr := prefixes[i]
+
+			// Skip if contained in last result (larger blocks come first after sorting)
+			if len(result) > 0 {
+				last := result[len(result)-1]
+				if last.Overlaps(curr) && last.Bits() <= curr.Bits() {
+					continue
+				}
+			}
+
+			// Try to merge with next prefix
 			if i+1 < len(prefixes) {
-				if parent, ok := tryMerge(prefixes[i], prefixes[i+1]); ok {
-					newResult = append(newResult, parent)
+				if parent, ok := tryMerge(curr, prefixes[i+1]); ok {
+					result = append(result, parent)
 					i++ // Skip next prefix as it was merged
 					merged = true
 					continue
 				}
 			}
-			newResult = append(newResult, prefixes[i])
+
+			result = append(result, curr)
 		}
 
-		prefixes = newResult
+		prefixes = result
 		if !merged {
 			break
 		}
-		// Re-sort and remove contained after merging
+		// Re-sort after merging (merged prefix may be out of order)
 		sortPrefixes(prefixes)
-		prefixes = removeContained(prefixes)
 	}
 
 	return prefixes
