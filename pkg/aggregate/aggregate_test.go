@@ -231,6 +231,42 @@ func TestAggregatePrefixes(t *testing.T) {
 			},
 			expect: []string{"192.168.0.1/32", "192.168.0.2/31"},
 		},
+		{
+			name: "8 consecutive IPs cascade merge to /29",
+			input: []string{
+				"10.0.0.0/32", "10.0.0.1/32", "10.0.0.2/32", "10.0.0.3/32",
+				"10.0.0.4/32", "10.0.0.5/32", "10.0.0.6/32", "10.0.0.7/32",
+			},
+			expect: []string{"10.0.0.0/29"},
+		},
+		{
+			name:   "cascade merge with gap in middle",
+			input:  []string{"10.0.0.0/32", "10.0.0.1/32", "10.0.0.4/32", "10.0.0.5/32"},
+			expect: []string{"10.0.0.0/31", "10.0.0.4/31"},
+		},
+		{
+			name:   "mixed CIDR sizes that cascade",
+			input:  []string{"10.0.0.0/32", "10.0.0.1/32", "10.0.0.2/31"},
+			expect: []string{"10.0.0.0/30"},
+		},
+		{
+			name:   "unsorted input still works",
+			input:  []string{"10.0.0.3/32", "10.0.0.0/32", "10.0.0.2/32", "10.0.0.1/32"},
+			expect: []string{"10.0.0.0/30"},
+		},
+		{
+			name: "IPv6 cascade merge 8 addresses to /125",
+			input: []string{
+				"2001:db8::0/128", "2001:db8::1/128", "2001:db8::2/128", "2001:db8::3/128",
+				"2001:db8::4/128", "2001:db8::5/128", "2001:db8::6/128", "2001:db8::7/128",
+			},
+			expect: []string{"2001:db8::/125"},
+		},
+		{
+			name:   "larger block absorbs adjacent smaller after merge",
+			input:  []string{"10.0.0.0/25", "10.0.0.128/26", "10.0.0.192/26"},
+			expect: []string{"10.0.0.0/24"},
+		},
 	}
 
 	for _, tt := range tests {

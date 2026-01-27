@@ -156,8 +156,6 @@ func mergeAndRemoveContained(prefixes []netip.Prefix) []netip.Prefix {
 		if !merged {
 			break
 		}
-		// Re-sort after merging (merged prefix may be out of order)
-		sortPrefixes(prefixes)
 	}
 
 	return prefixes
