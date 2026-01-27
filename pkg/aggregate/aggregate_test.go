@@ -261,12 +261,12 @@ func TestAggregate(t *testing.T) {
 		{
 			name:   "nil input",
 			input:  nil,
-			expect: nil,
+			expect: []string{},
 		},
 		{
 			name:   "empty input",
 			input:  []*models.Decision{},
-			expect: nil,
+			expect: []string{},
 		},
 		{
 			name: "single IP decision",
@@ -306,12 +306,7 @@ func TestAggregate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := Aggregate(tt.input)
 
-			if tt.expect == nil {
-				assert.Nil(t, got)
-				return
-			}
-
-			var gotStrings []string
+			gotStrings := make([]string, 0, len(got))
 			for _, d := range got {
 				gotStrings = append(gotStrings, *d.Value)
 			}

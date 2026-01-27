@@ -21,7 +21,7 @@ var (
 // into minimal CIDR blocks. Adjacent IPs are merged into larger ranges.
 func Aggregate(decisions []*models.Decision) []*models.Decision {
 	if len(decisions) == 0 {
-		return nil
+		return []*models.Decision{}
 	}
 
 	// Parse decision values to prefixes
@@ -37,7 +37,7 @@ func Aggregate(decisions []*models.Decision) []*models.Decision {
 	}
 
 	if len(prefixes) == 0 {
-		return nil
+		return []*models.Decision{}
 	}
 
 	// Aggregate
@@ -91,7 +91,7 @@ func parseValue(value string) (netip.Prefix, error) {
 // 4. Recursively merging adjacent prefixes
 func aggregatePrefixes(prefixes []netip.Prefix) []netip.Prefix {
 	if len(prefixes) == 0 {
-		return nil
+		return []netip.Prefix{}
 	}
 
 	// Deduplicate using map
@@ -134,7 +134,7 @@ func sortPrefixes(prefixes []netip.Prefix) {
 // removeContained removes prefixes that are contained within a previous larger prefix.
 func removeContained(sorted []netip.Prefix) []netip.Prefix {
 	if len(sorted) == 0 {
-		return nil
+		return []netip.Prefix{}
 	}
 
 	result := make([]netip.Prefix, 0, len(sorted))
