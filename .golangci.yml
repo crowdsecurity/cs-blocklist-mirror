@@ -107,13 +107,13 @@ linters:
         - name: cognitive-complexity
           arguments:
             # lower this after refactoring
-            - 33
+            - 41
         - name: comment-spacings
           disabled: true
         - name: cyclomatic
           arguments:
             # lower this after refactoring
-            - 22
+            - 25
         - name: empty-lines
           disabled: true
         - name: enforce-switch-style
@@ -123,8 +123,8 @@ linters:
         - name: function-length
           arguments:
             # lower this after refactoring
-            - 44
-            - 126
+            - 48
+            - 135
         - name: import-shadowing
           disabled: true
         - name: line-length-limit

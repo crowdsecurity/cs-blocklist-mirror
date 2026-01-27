@@ -5,11 +5,14 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
+
+	"github.com/crowdsecurity/cs-blocklist-mirror/pkg/aggregate"
 )
 
 var activeDecisionCount prometheus.Gauge = promauto.NewGauge(prometheus.GaugeOpts{
@@ -21,18 +24,18 @@ type Key int
 
 type DecisionRegistry struct {
 	ActiveDecisionsByValue map[string]*models.Decision
+	AggregatedDecisions    []*models.Decision
 	Key                    Key
 	SupportedDecisionTypes []string
+	aggregationEnabled     bool
+	mu                     sync.RWMutex
 }
 
-func (dr *DecisionRegistry) AddDecisions(decisions []*models.Decision) {
-	for _, decision := range decisions {
-		if _, ok := dr.ActiveDecisionsByValue[*decision.Value]; !ok {
-			activeDecisionCount.Inc()
-		}
-
-		dr.ActiveDecisionsByValue[*decision.Value] = decision
-	}
+// EnableAggregation enables the computation and storage of aggregated decisions.
+func (dr *DecisionRegistry) EnableAggregation() {
+	dr.mu.Lock()
+	defer dr.mu.Unlock()
+	dr.aggregationEnabled = true
 }
 
 func (dr *DecisionRegistry) GetSupportedDecisionTypesWithFilter(filter url.Values) []string {
@@ -61,13 +64,32 @@ func (dr *DecisionRegistry) GetSupportedDecisionTypesWithFilter(filter url.Value
 	return allowedTypes
 }
 
-func (dr *DecisionRegistry) GetActiveDecisions(filter url.Values) []*models.Decision {
-	ret := make([]*models.Decision, 0, len(dr.ActiveDecisionsByValue))
+func (dr *DecisionRegistry) GetActiveDecisions(filter url.Values, aggregated bool) []*models.Decision {
+	dr.mu.RLock()
+	defer dr.mu.RUnlock()
 
-	allowedTypes := dr.GetSupportedDecisionTypesWithFilter(filter)
+	var source []*models.Decision
+	if aggregated {
+		source = dr.AggregatedDecisions
+	} else {
+		source = make([]*models.Decision, 0, len(dr.ActiveDecisionsByValue))
+		for _, v := range dr.ActiveDecisionsByValue {
+			source = append(source, v)
+		}
+	}
 
-	for _, v := range dr.ActiveDecisionsByValue {
-		// filter by type if allowedTypes is non-empty
+	ret := make([]*models.Decision, 0, len(source))
+
+	// Type and origin filters only apply to non-aggregated results.
+	// Aggregated ranges may contain IPs from multiple origins/types,
+	// so these filters cannot work correctly. Only ipv4only/ipv6only apply.
+	var allowedTypes []string
+	if !aggregated {
+		allowedTypes = dr.GetSupportedDecisionTypesWithFilter(filter)
+	}
+
+	for _, v := range source {
+		// filter by type if allowedTypes is non-empty (non-aggregated only)
 		if len(allowedTypes) > 0 {
 			dType := ""
 			if v.Type != nil {
@@ -85,7 +107,8 @@ func (dr *DecisionRegistry) GetActiveDecisions(filter url.Values) []*models.Deci
 			continue
 		}
 
-		if filter.Has("origin") && !strings.EqualFold(*v.Origin, filter.Get("origin")) {
+		// origin filter only applies to non-aggregated results
+		if !aggregated && filter.Has("origin") && v.Origin != nil && !strings.EqualFold(*v.Origin, filter.Get("origin")) {
 			continue
 		}
 
@@ -101,13 +124,55 @@ func (dr *DecisionRegistry) GetActiveDecisions(filter url.Values) []*models.Deci
 	return ret
 }
 
-func (dr *DecisionRegistry) DeleteDecisions(decisions []*models.Decision) {
+func (dr *DecisionRegistry) AddDecisions(decisions []*models.Decision) {
+	dr.mu.Lock()
+	defer dr.mu.Unlock()
+
 	for _, decision := range decisions {
+		if decision == nil || decision.Value == nil {
+			continue
+		}
+
+		if _, ok := dr.ActiveDecisionsByValue[*decision.Value]; !ok {
+			activeDecisionCount.Inc()
+		}
+
+		dr.ActiveDecisionsByValue[*decision.Value] = decision
+	}
+}
+
+func (dr *DecisionRegistry) DeleteDecisions(decisions []*models.Decision) {
+	dr.mu.Lock()
+	defer dr.mu.Unlock()
+
+	for _, decision := range decisions {
+		if decision == nil || decision.Value == nil {
+			continue
+		}
+
 		if _, ok := dr.ActiveDecisionsByValue[*decision.Value]; ok {
 			delete(dr.ActiveDecisionsByValue, *decision.Value)
 			activeDecisionCount.Dec()
 		}
 	}
+}
+
+// RecomputeAggregated rebuilds the aggregated decisions view.
+// Does nothing if aggregation is not enabled.
+func (dr *DecisionRegistry) RecomputeAggregated() {
+	dr.mu.Lock()
+	defer dr.mu.Unlock()
+
+	if !dr.aggregationEnabled {
+		return
+	}
+
+	all := make([]*models.Decision, 0, len(dr.ActiveDecisionsByValue))
+	for _, decision := range dr.ActiveDecisionsByValue {
+		all = append(all, decision)
+	}
+
+	dr.AggregatedDecisions = aggregate.Aggregate(all)
 }
 
 var GlobalDecisionRegistry = DecisionRegistry{

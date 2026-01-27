@@ -160,9 +160,9 @@ func metricsMiddleware(blockListCfg *cfg.BlockListConfig, next http.HandlerFunc)
 	}
 }
 
-func decisionMiddleware(next http.HandlerFunc) func(w http.ResponseWriter, r *http.Request) {
+func decisionMiddleware(blockListCfg *cfg.BlockListConfig, next http.HandlerFunc) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		decisions := registry.GlobalDecisionRegistry.GetActiveDecisions(r.URL.Query())
+		decisions := registry.GlobalDecisionRegistry.GetActiveDecisions(r.URL.Query(), blockListCfg.Aggregate)
 		if len(decisions) == 0 {
 			http.Error(w, "no decisions available", http.StatusNotFound)
 			return
@@ -259,5 +259,5 @@ func getHandlerForBlockList(blockListCfg *cfg.BlockListConfig) (func(w http.Resp
 	return gzipMiddleware(
 		authMiddleware(blockListCfg,
 			metricsMiddleware(blockListCfg,
-				decisionMiddleware(formatters.ByName[blockListCfg.Format])))), nil
+				decisionMiddleware(blockListCfg, formatters.ByName[blockListCfg.Format])))), nil
 }
